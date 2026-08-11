@@ -94,14 +94,18 @@ class _StationHistoryViewState extends State<StationHistoryView> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _buildFilterChip("TOUS", themeProvider.tr('all')),
-                      const SizedBox(width: 8),
-                      _buildFilterChip("TERMINEE", themeProvider.tr('completed')),
-                      const SizedBox(width: 8),
-                      _buildFilterChip("ANNULEE", themeProvider.tr('cancelled')),
-                    ],
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    child: Row(
+                      children: [
+                        _buildFilterChip("TOUS", themeProvider.tr('all')),
+                        const SizedBox(width: 8),
+                        _buildFilterChip("TERMINEE", themeProvider.tr('completed')),
+                        const SizedBox(width: 8),
+                        _buildFilterChip("ANNULEE", themeProvider.tr('cancelled')),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -262,8 +266,11 @@ class _StationHistoryViewState extends State<StationHistoryView> {
               Text("${themeProvider.tr('driver')}: ${tx.camion!.nomProprietaire}", style: const TextStyle(color: AppTheme.textMuted, fontSize: 13)),
             ],
             const Divider(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
               children: [
                 Text("${themeProvider.tr('entry_time')}: $formattedEntree", style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                 Text("${themeProvider.tr('exit_time')}: $formattedSortie", style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
