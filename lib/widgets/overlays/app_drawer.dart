@@ -35,7 +35,7 @@ class AppDrawer extends StatelessWidget {
               user?.nom ?? "Agent Station",
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
-            accountEmail: Text(user?.email ?? "station@aquafresh.com"),
+            accountEmail: Text(user?.email ?? "station@jlgpowerservicessupplies.com"),
           ),
 
           // Menu Items

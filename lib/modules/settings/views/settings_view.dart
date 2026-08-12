@@ -307,7 +307,7 @@ class _SettingsViewState extends State<SettingsView> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              user?.email ?? "station@aquafresh.com",
+                              user?.email ?? "station@jlgpowerservicessupplies.com",
                               style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
                             ),
                             const SizedBox(height: 8),
