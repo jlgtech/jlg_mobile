@@ -8,6 +8,7 @@ class AuthStorage {
   static const String _keyUserNom = "user_nom";
   static const String _keyUserEmail = "user_email";
   static const String _keyUserRole = "user_role";
+  static const String _keyMustChangePassword = "must_change_password";
 
   static Future<void> saveSession({
     required String token,
@@ -15,12 +16,15 @@ class AuthStorage {
     required String nom,
     required String email,
     required String role,
+    bool doitChangerMotDePasse = false,
   }) async {
     await _storage.write(key: _keyToken, value: token);
     await _storage.write(key: _keyUserId, value: userId);
     await _storage.write(key: _keyUserNom, value: nom);
     await _storage.write(key: _keyUserEmail, value: email);
     await _storage.write(key: _keyUserRole, value: role);
+    await _storage.write(
+        key: _keyMustChangePassword, value: doitChangerMotDePasse.toString());
   }
 
   static Future<String?> getToken() async => await _storage.read(key: _keyToken);
@@ -28,6 +32,10 @@ class AuthStorage {
   static Future<String?> getUserNom() async => await _storage.read(key: _keyUserNom);
   static Future<String?> getUserEmail() async => await _storage.read(key: _keyUserEmail);
   static Future<String?> getUserRole() async => await _storage.read(key: _keyUserRole);
+  static Future<bool> getMustChangePassword() async {
+    final val = await _storage.read(key: _keyMustChangePassword);
+    return val == 'true';
+  }
 
   static Future<void> clearSession() async {
     await _storage.deleteAll();

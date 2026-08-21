@@ -37,12 +37,14 @@ class AuthProvider extends ChangeNotifier {
       final role = await AuthStorage.getUserRole();
 
       if (id != null && nom != null && email != null && role != null) {
+        final mustChange = await AuthStorage.getMustChangePassword();
         _currentUser = UserModel(
           id: id,
           nom: nom,
           email: email,
           role: role,
           actif: true,
+          doitChangerMotDePasse: mustChange,
         );
         _isAuthenticated = true;
         _isLoading = false;
@@ -84,6 +86,7 @@ class AuthProvider extends ChangeNotifier {
           nom: user.nom,
           email: user.email,
           role: user.role,
+          doitChangerMotDePasse: user.doitChangerMotDePasse,
         );
 
         _isLoading = false;
@@ -98,6 +101,55 @@ class AuthProvider extends ChangeNotifier {
       }
     } catch (e) {
       _errorMessage = "Impossible de contacter le serveur ($e). Vérifiez votre connexion.";
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> changePassword(String oldPassword, String newPassword) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await ApiClient.post('/auth/change-password', {
+        'old_password': oldPassword,
+        'new_password': newPassword,
+      });
+
+      if (response.statusCode == 200) {
+        if (_currentUser != null) {
+          _currentUser = UserModel(
+            id: _currentUser!.id,
+            nom: _currentUser!.nom,
+            email: _currentUser!.email,
+            role: _currentUser!.role,
+            telephone: _currentUser!.telephone,
+            actif: _currentUser!.actif,
+            doitChangerMotDePasse: false,
+          );
+        }
+        await AuthStorage.saveSession(
+          token: (await AuthStorage.getToken()) ?? '',
+          userId: _currentUser?.id ?? '',
+          nom: _currentUser?.nom ?? '',
+          email: _currentUser?.email ?? '',
+          role: _currentUser?.role ?? '',
+          doitChangerMotDePasse: false,
+        );
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        final errorData = jsonDecode(response.body);
+        _errorMessage = errorData['detail'] ?? 'Erreur lors du changement de mot de passe.';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = "Impossible de joindre le serveur ($e).";
       _isLoading = false;
       notifyListeners();
       return false;
