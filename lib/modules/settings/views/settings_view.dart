@@ -6,6 +6,7 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../widgets/overlays/app_modal_sheet.dart';
 import '../../../widgets/overlays/app_notifications.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../station/providers/station_provider.dart';
 
 class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
@@ -339,15 +340,17 @@ class _SettingsViewState extends State<SettingsView> {
             Card(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Column(
-                children: const [
+                children: [
                   ListTile(
-                    leading: Icon(Icons.store_outlined, color: AppTheme.primaryEmerald),
-                    title: Text("Station de Remplissage"),
-                    subtitle: Text("Station Aquafresh #01 — Port-au-Prince"),
-                    trailing: Icon(Icons.verified, color: AppTheme.accentMint, size: 20),
+                    leading: const Icon(Icons.store_outlined, color: AppTheme.primaryEmerald),
+                    title: const Text("Station de Remplissage"),
+                    subtitle: Text(
+                      Provider.of<StationProvider>(context).companyConfig['adresseStation'] ?? "Station Aquafresh #01 — Port-au-Prince",
+                    ),
+                    trailing: const Icon(Icons.verified, color: AppTheme.accentMint, size: 20),
                   ),
-                  Divider(height: 1),
-                  ListTile(
+                  const Divider(height: 1),
+                  const ListTile(
                     leading: Icon(Icons.point_of_sale_outlined, color: AppTheme.primaryEmerald),
                     title: Text("Identifiant Terminal Mobile"),
                     subtitle: Text("TERM-STATION-APK-2026-V1"),

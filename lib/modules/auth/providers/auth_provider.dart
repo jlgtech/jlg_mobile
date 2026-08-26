@@ -31,6 +31,27 @@ class AuthProvider extends ChangeNotifier {
 
     final token = await AuthStorage.getToken();
     if (token != null && token.isNotEmpty) {
+      try {
+        final response = await ApiClient.get('/auth/me');
+        if (response.statusCode == 200) {
+          final userData = jsonDecode(response.body);
+          final user = UserModel.fromJson(userData);
+          _currentUser = user;
+          _isAuthenticated = true;
+          await AuthStorage.saveSession(
+            token: token,
+            userId: user.id,
+            nom: user.nom,
+            email: user.email,
+            role: user.role,
+            doitChangerMotDePasse: user.doitChangerMotDePasse,
+          );
+          _isLoading = false;
+          notifyListeners();
+          return true;
+        }
+      } catch (_) {}
+
       final id = await AuthStorage.getUserId();
       final nom = await AuthStorage.getUserNom();
       final email = await AuthStorage.getUserEmail();

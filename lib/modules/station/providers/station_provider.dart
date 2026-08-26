@@ -7,13 +7,41 @@ class StationProvider extends ChangeNotifier {
   List<TransactionStationModel> _transactions = [];
   bool _isLoading = false;
   String? _errorMessage;
+  double _tarifHtg = 12500.0;
+  Map<String, dynamic> _companyConfig = {};
 
   List<TransactionStationModel> get transactions => _transactions;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  double get tarifHtg => _tarifHtg;
+  Map<String, dynamic> get companyConfig => _companyConfig;
 
   List<TransactionStationModel> get pendingTransactions =>
       _transactions.where((t) => t.statut == 'EN_ATTENTE' || t.statut == 'EN_COURS').toList();
+
+  Future<void> fetchTarif() async {
+    try {
+      final response = await ApiClient.get('/station/tarif');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['tarif_htg'] != null) {
+          _tarifHtg = (data['tarif_htg'] as num).toDouble();
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> fetchCompanyConfig() async {
+    try {
+      final response = await ApiClient.get('/station/company-config');
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map<String, dynamic>) {
+          _companyConfig = data;
+        }
+      }
+    } catch (_) {}
+  }
 
   Future<List<CamionStationModel>> searchMatchingTrucks(String query) async {
     final cleanQuery = query.toUpperCase().trim();
@@ -74,6 +102,9 @@ class StationProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      await fetchTarif();
+      await fetchCompanyConfig();
+
       final response = await ApiClient.get('/station/transactions');
       debugPrint('FETCH QUEUE STATUS: ${response.statusCode}');
       debugPrint('FETCH QUEUE BODY: ${response.body}');

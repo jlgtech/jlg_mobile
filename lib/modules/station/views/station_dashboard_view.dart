@@ -22,7 +22,6 @@ class _StationDashboardViewState extends State<StationDashboardView> {
   final _telephoneController = TextEditingController();
   final _searchController = TextEditingController();
   
-  final double _montantHtg = 12500.0;
   String _modePaiement = "CASH";
 
   List<CamionStationModel> _searchResults = [];
@@ -78,6 +77,9 @@ class _StationDashboardViewState extends State<StationDashboardView> {
     _proprietaireController.text = isKnown ? (truck.nomProprietaire ?? "") : "";
     _telephoneController.text = isKnown ? (truck.telephone ?? "") : "";
 
+    final provider = Provider.of<StationProvider>(context, listen: false);
+    final currentTarif = provider.tarifHtg;
+
     AppModalSheet.showCustomBottomSheet(
       context: context,
       title: isKnown ? "Émission Ticket — Camion Référencé" : "Enregistrement Camion & Entrée",
@@ -131,7 +133,7 @@ class _StationDashboardViewState extends State<StationDashboardView> {
               const SizedBox(height: 16),
 
               Text(
-                "Montant Forfaitaire: ${_montantHtg.toStringAsFixed(2)} HTG",
+                "Montant Forfaitaire (Tarif Officiel): ${currentTarif.toStringAsFixed(2)} HTG",
                 style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryEmerald),
               ),
               const SizedBox(height: 12),
@@ -169,10 +171,9 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                     return;
                   }
 
-                  final provider = Provider.of<StationProvider>(context, listen: false);
                   final success = await provider.createTicket(
                     plaqueImmatriculation: _plaqueController.text,
-                    montantHtg: _montantHtg,
+                    montantHtg: currentTarif,
                     modePaiement: _modePaiement,
                     nomProprietaire: _proprietaireController.text,
                     telephone: _telephoneController.text,
