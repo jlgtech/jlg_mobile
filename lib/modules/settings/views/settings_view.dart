@@ -27,66 +27,85 @@ class _SettingsViewState extends State<SettingsView> {
     final oldPasswordCtrl = TextEditingController();
     final newPasswordCtrl = TextEditingController();
     final confirmPasswordCtrl = TextEditingController();
+    bool obscureOld = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
 
     AppModalSheet.showCustomBottomSheet(
       context: context,
       title: "Modifier le mot de passe",
       titleIcon: Icons.lock_reset_outlined,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: oldPasswordCtrl,
-            obscureText: true,
-            decoration: InputDecoration(
-              labelText: "Ancien mot de passe",
-              prefixIcon: const Icon(Icons.lock_outline),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: newPasswordCtrl,
-            obscureText: true,
-            decoration: InputDecoration(
-              labelText: "Nouveau mot de passe",
-              prefixIcon: const Icon(Icons.key_outlined),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: confirmPasswordCtrl,
-            obscureText: true,
-            decoration: InputDecoration(
-              labelText: "Confirmer le nouveau mot de passe",
-              prefixIcon: const Icon(Icons.check_circle_outline),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: AppTheme.primaryEmerald,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () {
-              if (newPasswordCtrl.text.isEmpty || confirmPasswordCtrl.text.isEmpty) {
-                AppNotifications.showError(context, "Veuillez remplir tous les champs.");
-                return;
-              }
-              if (newPasswordCtrl.text != confirmPasswordCtrl.text) {
-                AppNotifications.showError(context, "Les nouveaux mots de passe ne correspondent pas.");
-                return;
-              }
-              Navigator.pop(context);
-              AppNotifications.showSuccess(context, "Mot de passe mis à jour avec succès !");
-            },
-            icon: const Icon(Icons.check_circle_outline),
-            label: const Text("Mettre à jour le mot de passe", style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
+      child: StatefulBuilder(
+        builder: (context, setModalState) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: oldPasswordCtrl,
+                obscureText: obscureOld,
+                decoration: InputDecoration(
+                  labelText: "Ancien mot de passe",
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(obscureOld ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setModalState(() => obscureOld = !obscureOld),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: newPasswordCtrl,
+                obscureText: obscureNew,
+                decoration: InputDecoration(
+                  labelText: "Nouveau mot de passe",
+                  prefixIcon: const Icon(Icons.key_outlined),
+                  suffixIcon: IconButton(
+                    icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setModalState(() => obscureNew = !obscureNew),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: confirmPasswordCtrl,
+                obscureText: obscureConfirm,
+                decoration: InputDecoration(
+                  labelText: "Confirmer le nouveau mot de passe",
+                  prefixIcon: const Icon(Icons.check_circle_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setModalState(() => obscureConfirm = !obscureConfirm),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: AppTheme.primaryEmerald,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  if (newPasswordCtrl.text.isEmpty || confirmPasswordCtrl.text.isEmpty) {
+                    AppNotifications.showError(context, "Veuillez remplir tous les champs.");
+                    return;
+                  }
+                  if (newPasswordCtrl.text != confirmPasswordCtrl.text) {
+                    AppNotifications.showError(context, "Les nouveaux mots de passe ne correspondent pas.");
+                    return;
+                  }
+                  Navigator.pop(context);
+                  AppNotifications.showSuccess(context, "Mot de passe mis à jour avec succès !");
+                },
+                icon: const Icon(Icons.check_circle_outline),
+                label: const Text("Mettre à jour le mot de passe", style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
