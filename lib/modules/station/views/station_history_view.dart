@@ -3,11 +3,14 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_provider.dart';
+import '../../../widgets/overlays/app_drawer.dart';
+import '../../../widgets/layout/app_nav_tab.dart';
 import '../providers/station_provider.dart';
 import '../models/station_models.dart';
 
 class StationHistoryView extends StatefulWidget {
-  const StationHistoryView({super.key});
+  final ValueChanged<AppNavTab>? onSelectTab;
+  const StationHistoryView({super.key, this.onSelectTab});
 
   @override
   State<StationHistoryView> createState() => _StationHistoryViewState();
@@ -50,7 +53,18 @@ class _StationHistoryViewState extends State<StationHistoryView> {
     }).toList();
 
     return Scaffold(
+      drawer: AppDrawer(
+        selectedTab: AppNavTab.history,
+        onSelectTab: widget.onSelectTab,
+      ),
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            tooltip: "Ouvrir le menu principal",
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         title: Text(themeProvider.tr('history_title')),
         centerTitle: true,
         actions: [

@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../models/delivery_model.dart';
 import '../providers/delivery_provider.dart';
 import '../widgets/dispute_dialog.dart';
+import '../widgets/address_map_modal.dart';
+import '../../../core/config/app_config.dart';
 
 class DeliveryDetailView extends StatefulWidget {
   final DeliveryOrder order;
@@ -22,16 +24,22 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     final success = await provider.startDelivery(widget.order.id);
     setState(() => _isProcessing = false);
 
-    if (mounted) {
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Livraison démarrée ! En route vers le client...'),
-            backgroundColor: Colors.teal,
-          ),
-        );
-        Navigator.pop(context);
-      }
+    if (!mounted) return;
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Livraison démarrée ! En route vers le client...'),
+          backgroundColor: Colors.teal,
+        ),
+      );
+      Navigator.pop(context);
+    } else if (provider.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.errorMessage!),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
     }
   }
 
@@ -39,25 +47,30 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     setState(() => _isProcessing = true);
     final provider = Provider.of<DeliveryProvider>(context, listen: false);
 
-    // Capture simulated GPS coordinates for Port-au-Prince
     final success = await provider.completeDelivery(
       widget.order.id,
-      lat: 18.5392,
-      lng: -72.3364,
+      lat: AppConfig.fallbackLatitude,
+      lng: AppConfig.fallbackLongitude,
     );
 
     setState(() => _isProcessing = false);
 
-    if (mounted) {
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Livraison validée avec succès ! Géolocalisation GPS enregistrée.'),
-            backgroundColor: Color(0xFF0C4E55),
-          ),
-        );
-        Navigator.pop(context);
-      }
+    if (!mounted) return;
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Livraison validée avec succès ! Géolocalisation GPS enregistrée.'),
+          backgroundColor: Color(0xFF0C4E55),
+        ),
+      );
+      Navigator.pop(context);
+    } else if (provider.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.errorMessage!),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
     }
   }
 
@@ -69,7 +82,8 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
         onSubmit: (motif) async {
           final provider = Provider.of<DeliveryProvider>(context, listen: false);
           final success = await provider.submitDispute(widget.order.id, motif);
-          if (mounted && success) {
+          if (!context.mounted) return;
+          if (success) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Litige transmis à l\'administration avec demande de relivraison.'),
@@ -77,6 +91,13 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
               ),
             );
             Navigator.pop(context);
+          } else if (provider.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(provider.errorMessage!),
+                backgroundColor: Colors.red.shade700,
+              ),
+            );
           }
         },
       ),
@@ -258,24 +279,23 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
 
                     const SizedBox(height: 14),
 
-                    // Bouton de Confirmation d'Adresse (Spécification Première Livraison)
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-                        side: BorderSide(color: Colors.teal.shade700),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    // Bouton de Confirmation d'Adresse avec Carte Interactive (Spécification Première Livraison)
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0C4E55),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      icon: const Icon(Icons.pin_drop_outlined, size: 18, color: Color(0xFF0C4E55)),
+                      icon: const Icon(Icons.map_outlined, size: 20),
                       label: const Text(
-                        "Confirmer / Valider Adresse & GPS",
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF0C4E55)),
+                        "Ouvrir Carte & Confirmer Adresse/GPS",
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("Adresse '${order.adresseLivraison}' et position GPS confirmées pour ce client !"),
-                            backgroundColor: const Color(0xFF0C4E55),
-                          ),
+                        showDialog(
+                          context: context,
+                          builder: (context) => AddressMapModal(order: order),
                         );
                       },
                     ),

@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/delivery_model.dart';
 import '../providers/delivery_provider.dart';
+import '../widgets/offline_status_banner.dart';
 import 'delivery_detail_view.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../widgets/overlays/app_drawer.dart';
+import '../../../widgets/layout/app_nav_tab.dart';
 
 class DeliveryListView extends StatefulWidget {
-  const DeliveryListView({super.key});
+  final ValueChanged<AppNavTab>? onSelectTab;
+  const DeliveryListView({super.key, this.onSelectTab});
 
   @override
   State<DeliveryListView> createState() => _DeliveryListViewState();
@@ -28,7 +31,10 @@ class _DeliveryListViewState extends State<DeliveryListView> {
     final user = authProvider.currentUser;
 
     return Scaffold(
-      drawer: const AppDrawer(selectedIndex: 1),
+      drawer: AppDrawer(
+        selectedTab: AppNavTab.deliveries,
+        onSelectTab: widget.onSelectTab,
+      ),
       appBar: AppBar(
         leading: Builder(
           builder: (context) => IconButton(
@@ -61,6 +67,32 @@ class _DeliveryListViewState extends State<DeliveryListView> {
               Provider.of<DeliveryProvider>(context, listen: false).fetchOrders();
             },
           ),
+          Consumer<DeliveryProvider>(
+            builder: (context, provider, _) => IconButton(
+              icon: Icon(
+                provider.isOffline ? Icons.cloud_off : Icons.cloud_download_outlined,
+                color: provider.isOffline ? Colors.orange.shade300 : Colors.white,
+              ),
+              tooltip: provider.isOffline
+                  ? "Hors ligne — cache disponible"
+                  : "Télécharger pour usage offline",
+              onPressed: provider.isOffline
+                  ? null
+                  : () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final ok = await provider.downloadForOffline();
+                      messenger.showSnackBar(SnackBar(
+                        content: Text(
+                          ok
+                            ? "Livraisons téléchargées — disponibles hors ligne."
+                            : "Impossible de mettre à jour le cache.",
+                        ),
+                        backgroundColor: ok ? const Color(0xFF0C4E55) : Colors.red.shade700,
+                        duration: const Duration(seconds: 3),
+                      ));
+                    },
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: "Se déconnecter",
@@ -77,6 +109,8 @@ class _DeliveryListViewState extends State<DeliveryListView> {
 
           return Column(
             children: [
+              // Banniere statut offline / sync
+              const OfflineStatusBanner(),
               // Hero Tour Progress Header Card
               Container(
                 decoration: const BoxDecoration(

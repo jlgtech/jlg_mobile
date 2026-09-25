@@ -73,23 +73,42 @@ class DeliveryOrder {
 
   factory DeliveryOrder.fromJson(Map<String, dynamic> json) {
     var rawItems = json['items'] as List? ?? [];
-    List<DeliveryItem> parsedItems = rawItems.map((i) => DeliveryItem.fromJson(i)).toList();
+    List<DeliveryItem> parsedItems = rawItems.map((i) => DeliveryItem.fromJson(i as Map<String, dynamic>)).toList();
 
     return DeliveryOrder(
       id: json['id'] ?? '',
-      code: json['code_commande'] ?? 'CMD-${json['id']?.toString().substring(0, 8).toUpperCase() ?? ''}',
-      clientNom: json['client_passage_nom'] ?? json['client']?['nom'] ?? 'Client Particulier',
-      clientTel: json['client_passage_telephone'] ?? json['client']?['telephone'] ?? '',
-      clientEmail: json['client_passage_email'] ?? json['client']?['email'] ?? '',
-      adresseLivraison: json['adresse_livraison'] ?? 'Port-au-Prince',
-      modePaiement: json['mode_paiement'] ?? 'ESPECES',
-      precisionPaiement: json['precision_paiement'],
-      montantTotal: double.tryParse(json['montant_total'].toString()) ?? 0.0,
+      code: json['code_commande'] ?? json['code'] ?? 'CMD-${json['id']?.toString().substring(0, 8).toUpperCase() ?? ''}',
+      clientNom: json['client_passage_nom'] ?? json['clientNom'] ?? json['client']?['nom'] ?? 'Client Particulier',
+      clientTel: json['client_passage_telephone'] ?? json['clientTel'] ?? json['client']?['telephone'] ?? '',
+      clientEmail: json['client_passage_email'] ?? json['clientEmail'] ?? json['client']?['email'] ?? '',
+      adresseLivraison: json['adresse_livraison'] ?? json['adresseLivraison'] ?? 'Port-au-Prince',
+      modePaiement: json['mode_paiement'] ?? json['modePaiement'] ?? 'ESPECES',
+      precisionPaiement: json['precision_paiement'] ?? json['precisionPaiement'],
+      montantTotal: double.tryParse(json['montant_total']?.toString() ?? json['montantTotal']?.toString() ?? '0') ?? 0.0,
       statut: json['statut'] ?? 'ASSIGNEE',
-      dateCreation: DateTime.tryParse(json['cree_le'] ?? '') ?? DateTime.now(),
+      dateCreation: DateTime.tryParse(json['cree_le'] ?? json['dateCreation'] ?? '') ?? DateTime.now(),
       items: parsedItems,
       latitude: json['latitude_livraison'] != null ? double.tryParse(json['latitude_livraison'].toString()) : null,
       longitude: json['longitude_livraison'] != null ? double.tryParse(json['longitude_livraison'].toString()) : null,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'code': code,
+      'clientNom': clientNom,
+      'clientTel': clientTel,
+      'clientEmail': clientEmail,
+      'adresseLivraison': adresseLivraison,
+      'modePaiement': modePaiement,
+      'precisionPaiement': precisionPaiement,
+      'montantTotal': montantTotal,
+      'statut': statut,
+      'dateCreation': dateCreation.toIso8601String(),
+      'items': items.map((i) => i.toJson()).toList(),
+      'latitude_livraison': latitude,
+      'longitude_livraison': longitude,
+    };
   }
 }

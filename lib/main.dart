@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'core/network/connectivity_service.dart';
+import 'core/network/offline_sync_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'modules/deliveries/providers/delivery_provider.dart';
@@ -8,8 +10,14 @@ import 'modules/auth/providers/auth_provider.dart';
 import 'modules/station/providers/station_provider.dart';
 import 'modules/splash/views/splash_view.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialisation de la surveillance réseau
+  await ConnectivityService().initialize();
+
+  // Initialisation du service offline (chargement du cache et actions en attente)
+  await OfflineSyncService().initialize();
 
   // Edge-to-Edge Universal Configuration for Android & iOS
   SystemChrome.setEnabledSystemUIMode(

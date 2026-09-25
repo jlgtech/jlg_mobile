@@ -13,6 +13,7 @@ import '../overlays/app_drawer.dart';
 import '../overlays/app_modal_sheet.dart';
 import '../overlays/app_notifications.dart';
 import 'app_bottom_nav.dart';
+import 'app_nav_tab.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -22,12 +23,11 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  int _currentTabIndex = 0;
+  AppNavTab _currentTab = AppNavTab.station;
 
   final _plaqueController = TextEditingController();
   final _proprietaireController = TextEditingController();
   final _telephoneController = TextEditingController();
-  final double _montantHtg = 12500.0;
   String _modePaiement = "CASH";
 
   Timer? _debounceTimer;
@@ -37,9 +37,9 @@ class _AppShellState extends State<AppShell> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final user = Provider.of<AuthProvider>(context, listen: false).currentUser;
-      if (user != null && user.isLivreur) {
+      if (user != null && user.isLivreurOnly) {
         setState(() {
-          _currentTabIndex = 1; // Default to Livraisons for drivers
+          _currentTab = AppNavTab.deliveries;
         });
       }
     });
@@ -52,6 +52,12 @@ class _AppShellState extends State<AppShell> {
     _telephoneController.dispose();
     _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  void _onTabSelected(AppNavTab tab) {
+    setState(() {
+      _currentTab = tab;
+    });
   }
 
   void _openNewTicketModal() {
@@ -69,8 +75,10 @@ class _AppShellState extends State<AppShell> {
       titleIcon: Icons.local_shipping_outlined,
       child: StatefulBuilder(
         builder: (context, setModalState) {
-          final provider = Provider.of<StationProvider>(context, listen: false);
+          final provider = Provider.of<StationProvider>(context, listen: true);
           final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+          // Tarif officiel lu depuis l'API (via StationProvider.fetchTarif)
+          final double currentTarif = provider.tarifHtg;
 
           void handlePlaqueChanged(String query) {
             _debounceTimer?.cancel();
@@ -200,16 +208,21 @@ class _AppShellState extends State<AppShell> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(themeProvider.tr('amount'), style: const TextStyle(color: AppTheme.textMuted, fontSize: 13)),
-                  Text(
-                    "${_montantHtg.toStringAsFixed(2)} HTG",
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryEmerald, fontSize: 15),
-                  ),
+                  currentTarif > 0
+                    ? Text(
+                        "${currentTarif.toStringAsFixed(2)} HTG",
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryEmerald, fontSize: 15),
+                      )
+                    : const Text(
+                        "Chargement du tarif...",
+                        style: TextStyle(color: AppTheme.textMuted, fontStyle: FontStyle.italic, fontSize: 13),
+                      ),
                 ],
               ),
               const SizedBox(height: 12),
 
               DropdownButtonFormField<String>(
-                value: _modePaiement,
+                initialValue: _modePaiement,
                 decoration: InputDecoration(
                   labelText: themeProvider.tr('payment_mode'),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -242,23 +255,33 @@ class _AppShellState extends State<AppShell> {
                     return;
                   }
 
+                  final messenger = ScaffoldMessenger.of(context);
+                  final navigator = Navigator.of(context);
+
                   final success = await provider.createTicket(
                     plaqueImmatriculation: _plaqueController.text,
-                    montantHtg: _montantHtg,
+                    montantHtg: currentTarif,
                     modePaiement: _modePaiement,
                     nomProprietaire: _proprietaireController.text,
                     telephone: _telephoneController.text,
                   );
 
                   if (!mounted) return;
+
                   if (success) {
-                    Navigator.pop(context);
+                    navigator.pop();
                     _plaqueController.clear();
                     _proprietaireController.clear();
                     _telephoneController.clear();
-                    AppNotifications.showSuccess(context, "Ticket émis avec succès !");
+                    messenger.showSnackBar(const SnackBar(
+                      content: Text("Ticket émis avec succès !"),
+                      backgroundColor: Color(0xFF0C4E55),
+                    ));
                   } else if (provider.errorMessage != null) {
-                    AppNotifications.showError(context, provider.errorMessage!);
+                    messenger.showSnackBar(SnackBar(
+                      content: Text(provider.errorMessage!),
+                      backgroundColor: Colors.red,
+                    ));
                   }
                 },
                 icon: const Icon(Icons.check_circle_outline),
@@ -276,33 +299,45 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      const StationDashboardView(),
-      const DeliveryListView(),
-      const StationHistoryView(),
-      const SettingsView(),
-    ];
+    final user = Provider.of<AuthProvider>(context).currentUser;
+    final visibleTabs = user.visibleTabs;
+
+    // Safety fallback if active tab is restricted for user role
+    AppNavTab activeTab = _currentTab;
+    if (!visibleTabs.contains(activeTab)) {
+      activeTab = visibleTabs.first;
+    }
+
+    Widget body;
+    switch (activeTab) {
+      case AppNavTab.station:
+        body = StationDashboardView(onSelectTab: _onTabSelected);
+        break;
+      case AppNavTab.deliveries:
+        body = DeliveryListView(onSelectTab: _onTabSelected);
+        break;
+      case AppNavTab.history:
+        body = StationHistoryView(onSelectTab: _onTabSelected);
+        break;
+      case AppNavTab.settings:
+        body = SettingsView(onSelectTab: _onTabSelected);
+        break;
+    }
+
+    final canAccessStation = user == null || user.isExecutive || user.isStationStaffOnly;
 
     return Scaffold(
       drawer: AppDrawer(
-        selectedIndex: _currentTabIndex,
-        onSelectModule: (index) {
-          setState(() {
-            _currentTabIndex = index;
-          });
-        },
+        selectedTab: activeTab,
+        onSelectTab: _onTabSelected,
       ),
-      body: pages[_currentTabIndex],
+      body: body,
       bottomNavigationBar: AppBottomNav(
-        currentIndex: _currentTabIndex,
-        onTap: (index) {
-          setState(() {
-            _currentTabIndex = index;
-          });
-        },
+        currentTab: activeTab,
+        onSelectTab: _onTabSelected,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: _currentTabIndex == 0
+      floatingActionButton: (activeTab == AppNavTab.station && canAccessStation)
           ? FloatingActionButton.extended(
               onPressed: _openNewTicketModal,
               backgroundColor: AppTheme.primaryEmerald,
@@ -317,4 +352,3 @@ class _AppShellState extends State<AppShell> {
     );
   }
 }
-

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/auth_storage.dart';
+import '../../../core/utils/error_sanitizer.dart';
 import '../models/user_model.dart';
 import '../views/login_view.dart';
 
@@ -114,14 +115,15 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        final errorData = jsonDecode(response.body);
-        _errorMessage = errorData['detail'] ?? 'Identifiants incorrects.';
+        // Sanitize the API error message before displaying it
+        _errorMessage = ErrorSanitizer.parseHttpResponseError(response);
         _isLoading = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
-      _errorMessage = "Impossible de contacter le serveur ($e). Vérifiez votre connexion.";
+      // Never expose raw exception details to end users
+      _errorMessage = ErrorSanitizer.extractErrorMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -163,14 +165,13 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        final errorData = jsonDecode(response.body);
-        _errorMessage = errorData['detail'] ?? 'Erreur lors du changement de mot de passe.';
+        _errorMessage = ErrorSanitizer.parseHttpResponseError(response);
         _isLoading = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
-      _errorMessage = "Impossible de joindre le serveur ($e).";
+      _errorMessage = ErrorSanitizer.extractErrorMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;

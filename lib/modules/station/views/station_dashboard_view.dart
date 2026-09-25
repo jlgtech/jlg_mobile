@@ -9,8 +9,12 @@ import '../../auth/providers/auth_provider.dart';
 import '../providers/station_provider.dart';
 import '../models/station_models.dart';
 
+import '../../../widgets/overlays/app_drawer.dart';
+import '../../../widgets/layout/app_nav_tab.dart';
+
 class StationDashboardView extends StatefulWidget {
-  const StationDashboardView({super.key});
+  final ValueChanged<AppNavTab>? onSelectTab;
+  const StationDashboardView({super.key, this.onSelectTab});
 
   @override
   State<StationDashboardView> createState() => _StationDashboardViewState();
@@ -139,7 +143,7 @@ class _StationDashboardViewState extends State<StationDashboardView> {
               const SizedBox(height: 12),
 
               DropdownButtonFormField<String>(
-                value: _modePaiement,
+                initialValue: _modePaiement,
                 decoration: InputDecoration(
                   labelText: "Mode de Paiement",
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -171,6 +175,9 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                     return;
                   }
 
+                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+                  final navigator = Navigator.of(context);
+
                   final success = await provider.createTicket(
                     plaqueImmatriculation: _plaqueController.text,
                     montantHtg: currentTarif,
@@ -180,16 +187,27 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                   );
 
                   if (!mounted) return;
+
                   if (success) {
-                    Navigator.pop(context);
+                    navigator.pop();
                     _searchController.clear();
                     setState(() {
                       _searchResults = [];
                       _hasSearched = false;
                     });
-                    AppNotifications.showSuccess(context, "Ticket émis avec succès !");
+                    scaffoldMessenger.showSnackBar(
+                      const SnackBar(
+                        content: Text("Ticket émis avec succès !"),
+                        backgroundColor: Color(0xFF0C4E55),
+                      ),
+                    );
                   } else if (provider.errorMessage != null) {
-                    AppNotifications.showError(context, provider.errorMessage!);
+                    scaffoldMessenger.showSnackBar(
+                      SnackBar(
+                        content: Text(provider.errorMessage!),
+                        backgroundColor: Colors.red.shade700,
+                      ),
+                    );
                   }
                 },
                 icon: const Icon(Icons.check_circle_outline),
@@ -213,7 +231,18 @@ class _StationDashboardViewState extends State<StationDashboardView> {
     final user = authProvider.currentUser;
 
     return Scaffold(
+      drawer: AppDrawer(
+        selectedTab: AppNavTab.station,
+        onSelectTab: widget.onSelectTab,
+      ),
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            tooltip: "Ouvrir le menu principal",
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         title: Text(themeProvider.tr('station_title')),
         actions: [
           IconButton(
@@ -620,9 +649,19 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(foregroundColor: AppTheme.accentMint),
                       onPressed: () async {
-                        final ok = await Provider.of<StationProvider>(context, listen: false).updateStatus(tx.id, "EN_COURS");
-                        if (context.mounted && ok) {
-                          AppNotifications.showSuccess(context, "Vanne ouverte — Remplissage en cours.");
+                        final provider = Provider.of<StationProvider>(context, listen: false);
+                        final messenger = ScaffoldMessenger.of(context);
+                        final ok = await provider.updateStatus(tx.id, "EN_COURS");
+                        if (ok) {
+                          messenger.showSnackBar(const SnackBar(
+                            content: Text("Vanne ouverte — Remplissage en cours."),
+                            backgroundColor: Color(0xFF0C4E55),
+                          ));
+                        } else if (provider.errorMessage != null) {
+                          messenger.showSnackBar(SnackBar(
+                            content: Text(provider.errorMessage!),
+                            backgroundColor: Colors.red,
+                          ));
                         }
                       },
                       icon: const Icon(Icons.play_arrow),
@@ -634,9 +673,19 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentMint),
                       onPressed: () async {
-                        final ok = await Provider.of<StationProvider>(context, listen: false).updateStatus(tx.id, "TERMINEE");
-                        if (context.mounted && ok) {
-                          AppNotifications.showSuccess(context, "Remplissage terminé — Ticket validé !");
+                        final provider = Provider.of<StationProvider>(context, listen: false);
+                        final messenger = ScaffoldMessenger.of(context);
+                        final ok = await provider.updateStatus(tx.id, "TERMINEE");
+                        if (ok) {
+                          messenger.showSnackBar(const SnackBar(
+                            content: Text("Remplissage terminé — Ticket validé !"),
+                            backgroundColor: Color(0xFF0C4E55),
+                          ));
+                        } else if (provider.errorMessage != null) {
+                          messenger.showSnackBar(SnackBar(
+                            content: Text(provider.errorMessage!),
+                            backgroundColor: Colors.red,
+                          ));
                         }
                       },
                       icon: const Icon(Icons.check),

@@ -34,7 +34,11 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
     );
 
     _controller.forward();
-    _initializeApp();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _initializeApp();
+      }
+    });
   }
 
   @override
@@ -97,11 +101,11 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
                         Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Colors.white.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
+                                color: Colors.black.withValues(alpha: 0.2),
                                 blurRadius: 20,
                                 offset: const Offset(0, 10),
                               ),
@@ -129,7 +133,7 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.accentMint.withOpacity(0.9),
+                            color: AppTheme.accentMint.withValues(alpha: 0.9),
                             letterSpacing: 3.0,
                           ),
                         ),

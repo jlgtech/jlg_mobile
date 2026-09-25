@@ -19,16 +19,21 @@ class UserModel {
 
   bool get isSuperAdmin => role == 'SUPER_ADMIN';
   bool get isAdmin => role == 'ADMIN' || isSuperAdmin;
-  bool get isManager => role == 'MANAGER';
+  bool get isManager => role == 'MANAGER' || role == 'DIRECTEUR_EXPLOITATION';
+  bool get isExecutive => isAdmin || isManager;
+
+  bool get isLivreur => role == 'LIVREUR' || role == 'CHAUFFEUR';
+  bool get isLivreurOnly => isLivreur && !isExecutive;
+
   bool get isStationStaff =>
       role == 'AGENT_STATION' ||
       role == 'GUICHETIER' ||
       role == 'OPERATEUR_PISTE' ||
-      isAdmin ||
-      isManager;
-  bool get isLivreur => role == 'LIVREUR';
-  bool get isClient => role == 'CLIENT';
+      isExecutive;
+  bool get isStationStaffOnly =>
+      (role == 'AGENT_STATION' || role == 'GUICHETIER' || role == 'OPERATEUR_PISTE') && !isExecutive;
 
+  bool get isClient => role == 'CLIENT';
   bool get isInternal => !isClient;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {

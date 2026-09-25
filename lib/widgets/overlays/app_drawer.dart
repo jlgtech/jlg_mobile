@@ -2,21 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../modules/auth/providers/auth_provider.dart';
+import '../layout/app_nav_tab.dart';
 
 class AppDrawer extends StatelessWidget {
-  final int selectedIndex;
-  final ValueChanged<int>? onSelectModule;
+  final AppNavTab selectedTab;
+  final ValueChanged<AppNavTab>? onSelectTab;
 
   const AppDrawer({
     super.key,
-    this.selectedIndex = 0,
-    this.onSelectModule,
+    this.selectedTab = AppNavTab.station,
+    this.onSelectTab,
   });
 
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.currentUser;
+
+    final canAccessStation = user == null || user.isExecutive || user.isStationStaffOnly;
+    final canAccessDeliveries = user == null || user.isExecutive || user.isLivreurOnly;
 
     return Drawer(
       child: SafeArea(
@@ -85,23 +89,76 @@ class AppDrawer extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
-                  if (user == null || user.isStationStaff || user.isAdmin) ...[
+                  // SECTION RACCOURCIS D'ACTION RAPIDE
+                  _buildSectionHeader("RACCOURCIS D'ACTION RAPIDE"),
+                  if (canAccessStation)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryEmerald,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 2,
+                        ),
+                        icon: const Icon(Icons.add_circle_outline, size: 20),
+                        label: const Text(
+                          "+ Ticket Entrée Camion",
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          if (onSelectTab != null) onSelectTab!(AppNavTab.station);
+                        },
+                      ),
+                    ),
+                  if (canAccessDeliveries && user != null && user.isLivreurOnly)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryEmerald,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 2,
+                        ),
+                        icon: const Icon(Icons.route_outlined, size: 20),
+                        label: const Text(
+                          "Ma Feuille de Route Active",
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          if (onSelectTab != null) onSelectTab!(AppNavTab.deliveries);
+                        },
+                      ),
+                    ),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Divider(height: 1),
+                  ),
+
+                  // MODULES EXPLOITATION STATION
+                  if (canAccessStation) ...[
                     _buildSectionHeader("EXPLOITATION STATION"),
                     _buildDrawerTile(
                       context: context,
-                      index: 0,
+                      tab: AppNavTab.station,
                       icon: Icons.water_drop_outlined,
                       selectedIcon: Icons.water_drop_rounded,
                       title: "Station de Remplissage",
-                      subtitle: "File d'attente & Tickets camions",
+                      subtitle: "File d'attente & Vannes piste",
                     ),
                     _buildDrawerTile(
                       context: context,
-                      index: 2,
+                      tab: AppNavTab.history,
                       icon: Icons.history_outlined,
                       selectedIcon: Icons.history_rounded,
                       title: "Historique des Tickets",
-                      subtitle: "Registre complet des opérations",
+                      subtitle: "Registre des remplissages effectués",
                     ),
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -109,25 +166,28 @@ class AppDrawer extends StatelessWidget {
                     ),
                   ],
 
-                  _buildSectionHeader("LOGISTIQUE & LIVRAISONS"),
-                  _buildDrawerTile(
-                    context: context,
-                    index: 1,
-                    icon: Icons.local_shipping_outlined,
-                    selectedIcon: Icons.local_shipping_rounded,
-                    title: "Tournées de Livraison",
-                    subtitle: "Feuille de route & Remise client",
-                  ),
+                  // MODULES LOGISTIQUE & LIVRAISONS
+                  if (canAccessDeliveries) ...[
+                    _buildSectionHeader("LOGISTIQUE & LIVRAISONS"),
+                    _buildDrawerTile(
+                      context: context,
+                      tab: AppNavTab.deliveries,
+                      icon: Icons.local_shipping_outlined,
+                      selectedIcon: Icons.local_shipping_rounded,
+                      title: "Tournées de Livraison",
+                      subtitle: "Courses, GPS & Validation client",
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: Divider(height: 1),
+                    ),
+                  ],
 
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: Divider(height: 1),
-                  ),
-
+                  // MODULE CONFIGURATION
                   _buildSectionHeader("CONFIGURATION"),
                   _buildDrawerTile(
                     context: context,
-                    index: 3,
+                    tab: AppNavTab.settings,
                     icon: Icons.settings_outlined,
                     selectedIcon: Icons.settings_rounded,
                     title: "Paramètres Système",
@@ -137,7 +197,7 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
 
-            // Footer Logout Action (Compliant 48dp Target Height)
+            // Footer Logout Action
             const Divider(height: 1),
             ListTile(
               minVerticalPadding: 14,
@@ -182,13 +242,13 @@ class AppDrawer extends StatelessWidget {
 
   Widget _buildDrawerTile({
     required BuildContext context,
-    required int index,
+    required AppNavTab tab,
     required IconData icon,
     required IconData selectedIcon,
     required String title,
     required String subtitle,
   }) {
-    final isSelected = selectedIndex == index;
+    final isSelected = selectedTab == tab;
     return Semantics(
       button: true,
       selected: isSelected,
@@ -196,7 +256,7 @@ class AppDrawer extends StatelessWidget {
       child: ListTile(
         selected: isSelected,
         selectedTileColor: AppTheme.primaryEmerald.withValues(alpha: 0.1),
-        minVerticalPadding: 12, // Ensures AAA 48dp+ tap height
+        minVerticalPadding: 12,
         leading: Icon(
           isSelected ? selectedIcon : icon,
           color: isSelected ? AppTheme.primaryEmerald : AppTheme.textDark,
@@ -219,12 +279,11 @@ class AppDrawer extends StatelessWidget {
         ),
         onTap: () {
           Navigator.pop(context);
-          if (onSelectModule != null) {
-            onSelectModule!(index);
+          if (onSelectTab != null) {
+            onSelectTab!(tab);
           }
         },
       ),
     );
   }
 }
-

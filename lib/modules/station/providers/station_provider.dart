@@ -1,13 +1,15 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/config/app_config.dart';
+import '../../../core/utils/error_sanitizer.dart';
 import '../models/station_models.dart';
 
 class StationProvider extends ChangeNotifier {
   List<TransactionStationModel> _transactions = [];
   bool _isLoading = false;
   String? _errorMessage;
-  double _tarifHtg = 12500.0;
+  double _tarifHtg = AppConfig.fallbackTarifRemplissageHtg;
   Map<String, dynamic> _companyConfig = {};
 
   List<TransactionStationModel> get transactions => _transactions;
@@ -106,18 +108,15 @@ class StationProvider extends ChangeNotifier {
       await fetchCompanyConfig();
 
       final response = await ApiClient.get('/station/transactions');
-      debugPrint('FETCH QUEUE STATUS: ${response.statusCode}');
-      debugPrint('FETCH QUEUE BODY: ${response.body}');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         _transactions = data.map((item) => TransactionStationModel.fromJson(item)).toList();
-        debugPrint('PARSED TRANSACTIONS COUNT: ${_transactions.length}');
       } else {
-        _errorMessage = "Erreur serveur: HTTP ${response.statusCode}";
+        _errorMessage = ErrorSanitizer.parseHttpResponseError(response);
       }
     } catch (e) {
-      _errorMessage = "Erreur réseau: $e";
+      _errorMessage = ErrorSanitizer.extractErrorMessage(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -137,21 +136,21 @@ class StationProvider extends ChangeNotifier {
 
     final cleanPlaque = plaqueImmatriculation.toUpperCase().trim();
 
-    // 1. Double-entry validation check: Is truck already in active queue?
+    // Double-entry validation: Is truck already in active queue?
     final activeTx = _transactions.where((t) =>
       t.camion?.plaqueImmatriculation.toUpperCase() == cleanPlaque &&
       (t.statut == 'EN_ATTENTE' || t.statut == 'EN_COURS')
     ).toList();
 
     if (activeTx.isNotEmpty) {
-      _errorMessage = "Le camion $cleanPlaque est déjà enregistré dans la file d'attente (Ticket #${activeTx.first.codeTicket}) ! Un camion ne peut pas avoir plusieurs remplissages simultanés.";
+      _errorMessage = "Le camion $cleanPlaque est déjà dans la file d'attente (Ticket #${activeTx.first.codeTicket}). Un seul remplissage simultané est autorisé par camion.";
       _isLoading = false;
       notifyListeners();
       return false;
     }
 
     try {
-      // 2. Register/fetch truck
+      // 1. Register/fetch truck
       final truckResp = await ApiClient.post('/station/trucks', {
         'plaque_immatriculation': cleanPlaque,
         'nom_proprietaire': nomProprietaire?.trim(),
@@ -159,8 +158,7 @@ class StationProvider extends ChangeNotifier {
       });
 
       if (truckResp.statusCode != 200 && truckResp.statusCode != 201) {
-        final err = jsonDecode(truckResp.body);
-        _errorMessage = err['detail'] ?? "Impossible d'enregistrer le camion.";
+        _errorMessage = ErrorSanitizer.parseHttpResponseError(truckResp);
         _isLoading = false;
         notifyListeners();
         return false;
@@ -169,7 +167,7 @@ class StationProvider extends ChangeNotifier {
       final truckData = jsonDecode(truckResp.body);
       final camionId = truckData['id'];
 
-      // 3. Create station filling transaction
+      // 2. Create station filling transaction
       final txResp = await ApiClient.post('/station/transactions', {
         'camion_id': camionId,
         'montant_htg': montantHtg,
@@ -179,14 +177,13 @@ class StationProvider extends ChangeNotifier {
         await fetchQueue();
         return true;
       } else {
-        final err = jsonDecode(txResp.body);
-        _errorMessage = err['detail'] ?? "Erreur lors de la création du ticket.";
+        _errorMessage = ErrorSanitizer.parseHttpResponseError(txResp);
         _isLoading = false;
         notifyListeners();
         return false;
       }
     } catch (e) {
-      _errorMessage = "Erreur d'enregistrement: $e";
+      _errorMessage = ErrorSanitizer.extractErrorMessage(e);
       _isLoading = false;
       notifyListeners();
       return false;
@@ -194,6 +191,7 @@ class StationProvider extends ChangeNotifier {
   }
 
   Future<bool> updateStatus(String transactionId, String nouveauStatut) async {
+    _errorMessage = null;
     try {
       String path = '/station/transactions/$transactionId/start';
       if (nouveauStatut == 'TERMINEE') {
@@ -207,8 +205,12 @@ class StationProvider extends ChangeNotifier {
         await fetchQueue();
         return true;
       }
+      _errorMessage = ErrorSanitizer.parseHttpResponseError(response);
+      notifyListeners();
       return false;
     } catch (e) {
+      _errorMessage = ErrorSanitizer.extractErrorMessage(e);
+      notifyListeners();
       return false;
     }
   }

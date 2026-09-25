@@ -142,9 +142,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
                   setState(() => _isSubmitting = true);
                   final fullMotif = '$_selectedReason ${_motifController.text.trim()}'.trim();
                   await widget.onSubmit(fullMotif);
-                  if (mounted) {
-                    Navigator.pop(context);
-                  }
+                  // Navigator.pop is handled by the parent callback after validating success
                 },
           child: _isSubmitting
               ? const SizedBox(

@@ -1,3 +1,5 @@
+import '../../../core/config/app_config.dart';
+
 class CamionStationModel {
   final String id;
   final String plaqueImmatriculation;
@@ -63,7 +65,7 @@ class TransactionStationModel {
       codeTicket: json['code_ticket']?.toString() ?? '',
       camionId: json['camion_id']?.toString() ?? '',
       agentStationId: json['agent_station_id']?.toString() ?? '',
-      montantHtg: (json['montant_htg'] is num) ? (json['montant_htg'] as num).toDouble() : 12500.0,
+      montantHtg: (json['montant_htg'] is num) ? (json['montant_htg'] as num).toDouble() : AppConfig.fallbackTarifRemplissageHtg,
       modePaiement: json['mode_paiement']?.toString() ?? 'CASH',
       statut: rawStatut.toUpperCase().trim(),
       heureEntree: DateTime.tryParse(json['heure_entree']?.toString() ?? '') ?? DateTime.now(),

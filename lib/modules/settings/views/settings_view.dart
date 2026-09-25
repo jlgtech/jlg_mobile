@@ -8,8 +8,12 @@ import '../../../widgets/overlays/app_notifications.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../station/providers/station_provider.dart';
 
+import '../../../widgets/overlays/app_drawer.dart';
+import '../../../widgets/layout/app_nav_tab.dart';
+
 class SettingsView extends StatefulWidget {
-  const SettingsView({super.key});
+  final ValueChanged<AppNavTab>? onSelectTab;
+  const SettingsView({super.key, this.onSelectTab});
 
   @override
   State<SettingsView> createState() => _SettingsViewState();
@@ -279,7 +283,18 @@ class _SettingsViewState extends State<SettingsView> {
     final bool isInternal = user?.isInternal ?? true;
 
     return Scaffold(
+      drawer: AppDrawer(
+        selectedTab: AppNavTab.settings,
+        onSelectTab: widget.onSelectTab,
+      ),
       appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            tooltip: "Ouvrir le menu principal",
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         title: const Text("Paramètres"),
         centerTitle: true,
       ),
