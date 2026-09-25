@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -32,6 +33,8 @@ class _StationDashboardViewState extends State<StationDashboardView> {
   bool _isSearching = false;
   bool _hasSearched = false;
 
+  Timer? _searchDebounceTimer;
+
   @override
   void initState() {
     super.initState();
@@ -46,11 +49,13 @@ class _StationDashboardViewState extends State<StationDashboardView> {
     _proprietaireController.dispose();
     _telephoneController.dispose();
     _searchController.dispose();
+    _searchDebounceTimer?.cancel();
     super.dispose();
   }
 
-  void _onSearchChanged(String query) async {
-    final text = query.trim();
+  void _onSearchChanged(String query) {
+    _searchDebounceTimer?.cancel();
+    final text = query.trim().toUpperCase();
     if (text.isEmpty) {
       setState(() {
         _searchResults = [];
@@ -62,8 +67,27 @@ class _StationDashboardViewState extends State<StationDashboardView> {
 
     setState(() {
       _isSearching = true;
-      _hasSearched = true;
     });
+
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      final provider = Provider.of<StationProvider>(context, listen: false);
+      final results = await provider.searchMatchingTrucks(text);
+
+      if (!mounted) return;
+      setState(() {
+        _searchResults = results;
+        _isSearching = false;
+        _hasSearched = true;
+      });
+    });
+  }
+
+  void _onSubmitPlaque(String query) async {
+    final text = query.trim().toUpperCase();
+    if (text.isEmpty) return;
+
+    _searchDebounceTimer?.cancel();
+    setState(() => _isSearching = true);
 
     final provider = Provider.of<StationProvider>(context, listen: false);
     final results = await provider.searchMatchingTrucks(text);
@@ -72,7 +96,17 @@ class _StationDashboardViewState extends State<StationDashboardView> {
     setState(() {
       _searchResults = results;
       _isSearching = false;
+      _hasSearched = true;
     });
+
+    final exactMatch = results.where((t) => t.plaqueImmatriculation.toUpperCase() == text).firstOrNull;
+    if (exactMatch != null) {
+      _openTicketModalForTruck(exactMatch);
+    } else if (results.isNotEmpty) {
+      _openTicketModalForTruck(results.first);
+    } else {
+      _openTicketModalForTruck(null, initialPlaque: text);
+    }
   }
 
   void _openTicketModalForTruck(CamionStationModel? truck, {String initialPlaque = ""}) {
@@ -86,7 +120,7 @@ class _StationDashboardViewState extends State<StationDashboardView> {
 
     AppModalSheet.showCustomBottomSheet(
       context: context,
-      title: isKnown ? "Émission Ticket — Camion Référencé" : "Enregistrement Camion & Entrée",
+      title: isKnown ? "Émission Ticket — Camion Référencé" : "Ajouter le Camion & Émettre Ticket",
       titleIcon: isKnown ? Icons.verified_outlined : Icons.add_circle_outline,
       child: StatefulBuilder(
         builder: (context, setModalState) {
@@ -367,114 +401,186 @@ class _StationDashboardViewState extends State<StationDashboardView> {
               ),
               const SizedBox(height: 16),
 
-              // PROMINENT LIVE SEARCH BAR
+              // PROMINENT LIVE TRUCK ENTRY & CONTROL CARD
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: Padding(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        themeProvider.tr('search_quick'),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.primaryEmerald),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryEmerald.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.pin_outlined, color: AppTheme.primaryEmerald, size: 20),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Entrée Camion — Contrôle de la Plaque",
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.primaryEmerald),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  "Tapez la plaque d'immatriculation pour émettre un ticket ou ajouter un camion",
+                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 14),
                       TextField(
                         controller: _searchController,
                         onChanged: _onSearchChanged,
+                        onSubmitted: _onSubmitPlaque,
+                        textInputAction: TextInputAction.go,
                         textCapitalization: TextCapitalization.characters,
+                        style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1),
                         decoration: InputDecoration(
-                          hintText: themeProvider.tr('search_placeholder'),
-                          prefixIcon: const Icon(Icons.search, color: AppTheme.primaryEmerald),
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    _onSearchChanged("");
-                                  },
+                          hintText: "Ex : AA-12345...",
+                          labelText: "Plaque d'immatriculation",
+                          prefixIcon: const Icon(Icons.local_shipping_outlined, color: AppTheme.primaryEmerald),
+                          suffixIcon: _isSearching
+                              ? const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryEmerald),
+                                  ),
                                 )
-                              : null,
+                              : (_searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: const Icon(Icons.clear),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        _onSearchChanged("");
+                                      },
+                                    )
+                                  : null),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                         ),
                       ),
 
-                      // AUTOCOMPLETE MATCHING RESULTS LIST
-                      if (_isSearching)
-                        const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Center(child: CircularProgressIndicator()),
-                        )
-                      else if (_hasSearched) ...[
-                        const SizedBox(height: 12),
+                      // AUTOCOMPLETE MATCHING RESULTS LIST OR PROMPT TO ADD
+                      if (_hasSearched && !_isSearching) ...[
+                        const SizedBox(height: 14),
                         if (_searchResults.isNotEmpty) ...[
-                          const Text(
-                            "Camions trouvés en base :",
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textMuted),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Camion(s) trouvé(s) (${_searchResults.length}) :",
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textMuted),
+                              ),
+                              Text(
+                                "Sélectionnez pour émettre le ticket",
+                                style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 8),
                           ..._searchResults.map(
                             (truck) => Card(
+                              elevation: 0,
                               color: AppTheme.accentMint.withValues(alpha: 0.08),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(color: AppTheme.primaryEmerald.withValues(alpha: 0.25)),
+                              ),
                               margin: const EdgeInsets.only(bottom: 8),
                               child: ListTile(
-                                leading: const Icon(Icons.local_shipping, color: AppTheme.primaryEmerald),
+                                leading: CircleAvatar(
+                                  backgroundColor: AppTheme.primaryEmerald.withValues(alpha: 0.15),
+                                  child: const Icon(Icons.local_shipping, color: AppTheme.primaryEmerald, size: 20),
+                                ),
                                 title: Text(
                                   truck.plaqueImmatriculation,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.8),
                                 ),
                                 subtitle: Text(
-                                  "Propriétaire: ${truck.nomProprietaire ?? 'Non renseigné'}",
+                                  "Chauffeur: ${truck.nomProprietaire ?? 'Non renseigné'}${truck.telephone != null ? ' • ${truck.telephone}' : ''}",
                                   style: const TextStyle(fontSize: 13),
                                 ),
                                 trailing: ElevatedButton.icon(
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppTheme.primaryEmerald,
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                   ),
                                   onPressed: () => _openTicketModalForTruck(truck),
-                                  icon: const Icon(Icons.add, size: 16),
-                                  label: const Text("Sélectionner", style: TextStyle(fontSize: 12)),
+                                  icon: const Icon(Icons.confirmation_number_outlined, size: 16),
+                                  label: const Text("Émettre Ticket", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                 ),
                               ),
                             ),
                           ),
                         ] else ...[
-                          // UNKNOWN TRUCK ACTION CARD
-                          Card(
-                            color: Colors.orange.shade50,
-                            child: Padding(
-                              padding: const EdgeInsets.all(14.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.warning_amber_rounded, color: Colors.deepOrange),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          "Aucun camion correspondant à '${_searchController.text.trim()}'",
-                                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange),
+                          // PROMPT TO ADD UNKNOWN TRUCK
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0FDF4),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFF86EFAC)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.help_outline, color: Color(0xFF15803D), size: 22),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        "Le camion '${_searchController.text.toUpperCase().trim()}' n'existe pas encore.",
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13.5,
+                                          color: Color(0xFF166534),
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton.icon(
-                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
-                                      onPressed: () => _openTicketModalForTruck(null, initialPlaque: _searchController.text),
-                                      icon: const Icon(Icons.add_business_outlined),
-                                      label: Text("Enregistrer le camion ${_searchController.text.toUpperCase()}"),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  "Ce véhicule n'est pas encore enregistré dans le système. Souhaitez-vous l'ajouter pour émettre son ticket d'entrée ?",
+                                  style: TextStyle(fontSize: 12.5, color: Colors.green.shade900),
+                                ),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF0C4E55),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    onPressed: () => _openTicketModalForTruck(null, initialPlaque: _searchController.text.trim()),
+                                    icon: const Icon(Icons.add_circle_outline, size: 18),
+                                    label: Text(
+                                      "Ajouter le camion '${_searchController.text.toUpperCase().trim()}' & émettre le ticket",
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
