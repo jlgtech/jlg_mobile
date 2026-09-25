@@ -4,6 +4,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../widgets/layout/app_shell.dart';
 import '../../../widgets/overlays/app_notifications.dart';
+import '../../deliveries/views/delivery_list_view.dart';
 import '../providers/auth_provider.dart';
 
 class LoginView extends StatefulWidget {
@@ -37,9 +38,16 @@ class _LoginViewState extends State<LoginView> {
       if (!mounted) return;
       if (success) {
         AppNotifications.showSuccess(context, "Connexion réussie !");
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const AppShell()),
-        );
+        final userRole = authProvider.currentUser?.role;
+        if (userRole == 'LIVREUR' || userRole == 'CHAUFFEUR') {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const DeliveryListView()),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const AppShell()),
+          );
+        }
       } else if (authProvider.errorMessage != null) {
         AppNotifications.showError(context, authProvider.errorMessage!);
       }

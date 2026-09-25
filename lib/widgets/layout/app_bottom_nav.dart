@@ -33,28 +33,46 @@ class AppBottomNav extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: BottomNavigationBar(
-          currentIndex: currentIndex,
+          currentIndex: currentIndex > 3 ? 0 : currentIndex,
           onTap: onTap,
           backgroundColor: Theme.of(context).cardColor,
           selectedItemColor: AppTheme.primaryEmerald,
           unselectedItemColor: AppTheme.textMuted,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
           elevation: 0,
           type: BottomNavigationBarType.fixed,
           items: [
             BottomNavigationBarItem(
-              icon: const Icon(Icons.water_drop_outlined),
-              activeIcon: const Icon(Icons.water_drop_rounded),
+              icon: Semantics(
+                label: "Station Remplissage",
+                child: const Icon(Icons.water_drop_outlined, size: 24),
+              ),
+              activeIcon: const Icon(Icons.water_drop_rounded, size: 26),
               label: themeProvider.tr('queue_title'),
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.receipt_long_outlined),
-              activeIcon: const Icon(Icons.receipt_long_rounded),
-              label: themeProvider.tr('history_title'),
+              icon: Semantics(
+                label: "Tournées Livraisons",
+                child: const Icon(Icons.local_shipping_outlined, size: 24),
+              ),
+              activeIcon: const Icon(Icons.local_shipping_rounded, size: 26),
+              label: "Livraisons",
             ),
             BottomNavigationBarItem(
-              icon: const Icon(Icons.settings_outlined),
-              activeIcon: const Icon(Icons.settings_rounded),
+              icon: Semantics(
+                label: "Historique Tickets",
+                child: const Icon(Icons.history_outlined, size: 24),
+              ),
+              activeIcon: const Icon(Icons.history_rounded, size: 26),
+              label: "Historique",
+            ),
+            BottomNavigationBarItem(
+              icon: Semantics(
+                label: "Paramètres",
+                child: const Icon(Icons.settings_outlined, size: 24),
+              ),
+              activeIcon: const Icon(Icons.settings_rounded, size: 26),
               label: themeProvider.tr('settings_title'),
             ),
           ],
@@ -63,3 +81,4 @@ class AppBottomNav extends StatelessWidget {
     );
   }
 }
+

@@ -44,17 +44,20 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
   }
 
   Future<void> _initializeApp() async {
-    // Artificial minimum delay for smooth branding display
-    await Future.delayed(const Duration(milliseconds: 1800));
-
-    if (!mounted) return;
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final isAuthenticated = await authProvider.checkAuth();
+
+    // Lancer en parallèle la temporisation d'affichage et la vérification réseau
+    final results = await Future.wait([
+      Future.delayed(const Duration(milliseconds: 1200)),
+      authProvider.checkAuth(),
+    ]);
+
+    final isAuthenticated = results[1] as bool;
 
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 600),
+        transitionDuration: const Duration(milliseconds: 500),
         pageBuilder: (context, animation, secondaryAnimation) {
           return FadeTransition(
             opacity: animation,

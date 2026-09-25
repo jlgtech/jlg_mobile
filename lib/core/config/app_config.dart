@@ -5,7 +5,7 @@ class AppConfig {
   // =========================================================================
   // 🔘 BASCULEMENT ULTRA-SIMPLE : Mettre à `true` pour PROD, `false` pour LOCAL
   // =========================================================================
-  static bool isProduction = false;
+  static bool isProduction = true;
 
   // URLs d'API configurées automatiquement
   static const String _prodUrl  = "https://jlgapi.jlgpowerservicessupplies.com/api/v1";

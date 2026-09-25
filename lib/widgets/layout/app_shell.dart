@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/theme_provider.dart';
+import '../../modules/auth/providers/auth_provider.dart';
 import '../../modules/station/providers/station_provider.dart';
 import '../../modules/station/views/station_dashboard_view.dart';
 import '../../modules/station/views/station_history_view.dart';
+import '../../modules/deliveries/views/delivery_list_view.dart';
 import '../../modules/settings/views/settings_view.dart';
 import '../overlays/app_drawer.dart';
 import '../overlays/app_modal_sheet.dart';
@@ -29,6 +31,19 @@ class _AppShellState extends State<AppShell> {
   String _modePaiement = "CASH";
 
   Timer? _debounceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = Provider.of<AuthProvider>(context, listen: false).currentUser;
+      if (user != null && user.isLivreur) {
+        setState(() {
+          _currentTabIndex = 1; // Default to Livraisons for drivers
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -126,7 +141,6 @@ class _AppShellState extends State<AppShell> {
               ),
               const SizedBox(height: 12),
 
-              // RED ALERT CARD IF TRUCK ALREADY EXISTS IN DB WHEN TRYING TO ADD
               if (isSearched && isTruckFound) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -155,7 +169,6 @@ class _AppShellState extends State<AppShell> {
                 const SizedBox(height: 14),
               ],
 
-              // Chauffeur / Propriétaire
               TextField(
                 controller: _proprietaireController,
                 readOnly: isTruckFound,
@@ -169,7 +182,6 @@ class _AppShellState extends State<AppShell> {
               ),
               const SizedBox(height: 12),
 
-              // Téléphone
               TextField(
                 controller: _telephoneController,
                 readOnly: isTruckFound,
@@ -184,7 +196,6 @@ class _AppShellState extends State<AppShell> {
               ),
               const SizedBox(height: 16),
 
-              // Forfait Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -197,7 +208,6 @@ class _AppShellState extends State<AppShell> {
               ),
               const SizedBox(height: 12),
 
-              // Mode de Paiement Dropdown
               DropdownButtonFormField<String>(
                 value: _modePaiement,
                 decoration: InputDecoration(
@@ -215,7 +225,6 @@ class _AppShellState extends State<AppShell> {
               ),
               const SizedBox(height: 24),
 
-              // Single Main Submit Button
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -269,12 +278,20 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       const StationDashboardView(),
+      const DeliveryListView(),
       const StationHistoryView(),
       const SettingsView(),
     ];
 
     return Scaffold(
-      drawer: const AppDrawer(),
+      drawer: AppDrawer(
+        selectedIndex: _currentTabIndex,
+        onSelectModule: (index) {
+          setState(() {
+            _currentTabIndex = index;
+          });
+        },
+      ),
       body: pages[_currentTabIndex],
       bottomNavigationBar: AppBottomNav(
         currentIndex: _currentTabIndex,
@@ -300,3 +317,4 @@ class _AppShellState extends State<AppShell> {
     );
   }
 }
+

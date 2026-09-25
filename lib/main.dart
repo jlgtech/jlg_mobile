@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
+import 'modules/deliveries/providers/delivery_provider.dart';
 import 'modules/auth/providers/auth_provider.dart';
 import 'modules/station/providers/station_provider.dart';
 import 'modules/splash/views/splash_view.dart';
@@ -38,6 +39,7 @@ class JLGMobileApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => StationProvider()),
+        ChangeNotifierProvider(create: (_) => DeliveryProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: Consumer<ThemeProvider>(
