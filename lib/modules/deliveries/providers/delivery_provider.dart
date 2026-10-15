@@ -176,12 +176,24 @@ class DeliveryProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> submitDispute(String orderId, String motif) async {
+  Future<bool> submitDispute({
+    required String orderId,
+    String? articleId,
+    int quantiteDefectueuse = 1,
+    required String motif,
+    String? description,
+    bool doitEtreRelivree = true,
+    String actionChoisie = 'RELIVRAISON_DEMANDEE',
+  }) async {
     _errorMessage = null;
     final result = await _syncService.declareDispute(
       orderId: orderId,
+      articleId: articleId,
+      quantiteDefectueuse: quantiteDefectueuse,
       motif: motif,
-      actionCode: 'RELIVRAISON_DEMANDEE',
+      description: description,
+      doitEtreRelivree: doitEtreRelivree,
+      actionChoisie: actionChoisie,
     );
     if (result.success) {
       await fetchOrders();

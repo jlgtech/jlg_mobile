@@ -119,33 +119,95 @@ void main() {
       expect(order.statut, 'CLOTUREE');
     });
 
-    testWidgets('DisputeDialog renders safely without Dropdown assertion error', (tester) async {
+    testWidgets('DisputeDialog renders safely with quantity stepper and redelivery options', (tester) async {
+      final dummyOrder = DeliveryOrder(
+        id: 'ord-123',
+        code: 'CMD-TEST-001',
+        clientNom: 'Client VIP',
+        clientTel: '+509 3700 0000',
+        clientEmail: 'vip@test.com',
+        adresseLivraison: 'Delmas 75',
+        modePaiement: 'ESPECES',
+        montantTotal: 1500.0,
+        statut: 'EN_COURS_DE_LIVRAISON',
+        dateCreation: DateTime.now(),
+        items: [
+          DeliveryItem(
+            articleId: 'art-001',
+            designation: 'Pack Eau Pure 500ml',
+            quantiteCommandee: 10,
+            quantiteOfferte: 0,
+            prixUnitaire: 150.0,
+            totalLigne: 1500.0,
+          ),
+        ],
+      );
+
       String? submittedMotif;
+      int? submittedQty;
+      bool? submittedReliv;
+      String? submittedAction;
+
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: DisputeDialog(
-              orderCode: 'CMD-TEST-001',
-              onSubmit: (motif) {
+            body: Center(
+              child: DisputeDialog(
+                order: dummyOrder,
+              onSubmit: ({
+                required String articleId,
+                required int quantiteDefectueuse,
+                required String motif,
+                String? description,
+                required bool doitEtreRelivree,
+                required String actionChoisie,
+              }) async {
                 submittedMotif = motif;
+                submittedQty = quantiteDefectueuse;
+                submittedReliv = doitEtreRelivree;
+                submittedAction = actionChoisie;
+                return true;
               },
             ),
           ),
         ),
-      );
+      ),
+    );
 
-      // Verify title and order code rendered
+      // Verify title, order code and product rendered
       expect(find.text('Déclaration de Litige'), findsOneWidget);
-      expect(find.text('Commande : CMD-TEST-001'), findsOneWidget);
-      expect(find.byType(DropdownButton<String>), findsOneWidget);
+      expect(find.textContaining('CMD-TEST-001'), findsOneWidget);
+      expect(find.text('Pack Eau Pure 500ml'), findsOneWidget);
+      expect(find.text('Quantité défectueuse :'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
 
-      // Tap submit and verify default motif submitted without error
-      await tester.tap(find.text('Transmettre Litige'));
+      // Test stepper: increment quantity
+      await tester.tap(find.byIcon(Icons.add_circle_outline));
+      await tester.pump();
+      expect(find.text('2'), findsOneWidget);
+
+      // Verify redelivery options
+      expect(find.text('Relivraison de la quantité ?'), findsOneWidget);
+      expect(find.text('Reprogrammer'), findsOneWidget);
+      expect(find.text('Nouvelle Cmd'), findsOneWidget);
+
+      // Switch to Nouvelle Cmd
+      await tester.tap(find.text('Nouvelle Cmd'));
       await tester.pump();
 
-      expect(submittedMotif, isNotNull);
+      // Tap submit and verify parameters
+      await tester.tap(find.text('Déclarer le Litige'));
+      await tester.pump();
+
       expect(submittedMotif, contains('Produit Défectueux'));
+      expect(submittedQty, 2);
+      expect(submittedReliv, true);
+      expect(submittedAction, 'NOUVELLE_COMMANDE');
     });
   });
 }

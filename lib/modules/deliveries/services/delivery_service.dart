@@ -105,20 +105,45 @@ class DeliveryService {
     }
   }
 
-  /// Declare a delivery dispute or broken goods
+  /// Déclarer un litige terrain / produit défectueux avec reprogrammation
   static Future<({bool success, String? errorMessage})> declareDispute({
     required String orderId,
+    String? articleId,
+    int quantiteDefectueuse = 1,
     required String motif,
-    required String actionCode,
+    String? description,
+    bool doitEtreRelivree = true,
+    String actionChoisie = 'RELIVRAISON_DEMANDEE',
   }) async {
     try {
       final body = {
-        'statut': 'EN_ATTENTE_DE_RELIVRAISON',
+        'commande_id': orderId,
+        if (articleId != null && articleId.isNotEmpty) 'article_id': articleId,
+        'quantite_defectueuse': quantiteDefectueuse,
+        'doit_etre_relivree': doitEtreRelivree,
+        'action_choisie': actionChoisie,
+        'motif': motif,
+        if (description != null && description.isNotEmpty)
+          'description_detaillee': description,
+        'montant_a_rembourser': 0.0,
       };
-      final response = await ApiClient.post('/orders/$orderId/status', body);
-      if (response.statusCode == 200) {
+
+      final response = await ApiClient.post('/disputes/', body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return (success: true, errorMessage: null);
       }
+
+      // Fallback de compatibilite vers /orders/$orderId/status
+      if (response.statusCode == 404) {
+        final fallbackResponse = await ApiClient.post(
+          '/orders/$orderId/status',
+          {'statut': 'EN_ATTENTE_DE_RELIVRAISON'},
+        );
+        if (fallbackResponse.statusCode == 200) {
+          return (success: true, errorMessage: null);
+        }
+      }
+
       return (
         success: false,
         errorMessage: ErrorSanitizer.parseHttpResponseError(response),

@@ -112,11 +112,17 @@ class OfflineSyncService extends ChangeNotifier {
 
   /// Tente de déclarer un litige.
   /// Si hors ligne : enregistre l'action dans la file d'attente.
+  /// Déclare un litige ou produit défectueux (supporte le mode hors-ligne).
+  /// Si hors-ligne : persiste localement l'action et met à jour le statut.
   /// Si en ligne : appelle directement l'API.
   Future<({bool success, String? errorMessage})> declareDispute({
     required String orderId,
+    String? articleId,
+    int quantiteDefectueuse = 1,
     required String motif,
-    required String actionCode,
+    String? description,
+    bool doitEtreRelivree = true,
+    String actionChoisie = 'RELIVRAISON_DEMANDEE',
   }) async {
     if (_connectivity.isOffline) {
       await OfflineStorage.applyLocalStatusUpdate(orderId, 'EN_ATTENTE_DE_RELIVRAISON');
@@ -126,8 +132,12 @@ class OfflineSyncService extends ChangeNotifier {
         orderId: orderId,
         type: 'DECLARE_DISPUTE',
         payload: {
+          'articleId': articleId,
+          'quantiteDefectueuse': quantiteDefectueuse,
           'motif': motif,
-          'actionCode': actionCode,
+          'description': description,
+          'doitEtreRelivree': doitEtreRelivree,
+          'actionChoisie': actionChoisie,
         },
         createdAt: DateTime.now(),
       );
@@ -139,8 +149,12 @@ class OfflineSyncService extends ChangeNotifier {
 
     return DeliveryService.declareDispute(
       orderId: orderId,
+      articleId: articleId,
+      quantiteDefectueuse: quantiteDefectueuse,
       motif: motif,
-      actionCode: actionCode,
+      description: description,
+      doitEtreRelivree: doitEtreRelivree,
+      actionChoisie: actionChoisie,
     );
   }
 
@@ -184,8 +198,12 @@ class OfflineSyncService extends ChangeNotifier {
         } else if (action.type == 'DECLARE_DISPUTE') {
           final result = await DeliveryService.declareDispute(
             orderId: action.orderId,
-            motif: action.payload['motif'] as String,
-            actionCode: action.payload['actionCode'] as String,
+            articleId: action.payload['articleId']?.toString(),
+            quantiteDefectueuse: (action.payload['quantiteDefectueuse'] as num?)?.toInt() ?? 1,
+            motif: action.payload['motif']?.toString() ?? 'Produit Défectueux',
+            description: action.payload['description']?.toString(),
+            doitEtreRelivree: action.payload['doitEtreRelivree'] == true,
+            actionChoisie: action.payload['actionChoisie']?.toString() ?? 'RELIVRAISON_DEMANDEE',
           );
           ok = result.success;
           if (!ok && result.errorMessage != null) {

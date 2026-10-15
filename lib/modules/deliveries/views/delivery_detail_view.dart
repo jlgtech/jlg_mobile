@@ -247,16 +247,40 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     showDialog(
       context: context,
       builder: (context) => DisputeDialog(
-        orderCode: widget.order.code,
-        onSubmit: (motif) async {
+        order: widget.order,
+        onSubmit: ({
+          required String articleId,
+          required int quantiteDefectueuse,
+          required String motif,
+          String? description,
+          required bool doitEtreRelivree,
+          required String actionChoisie,
+        }) async {
           final provider = Provider.of<DeliveryProvider>(context, listen: false);
-          final success = await provider.submitDispute(widget.order.id, motif);
-          if (!context.mounted) return;
+          final success = await provider.submitDispute(
+            orderId: widget.order.id,
+            articleId: articleId,
+            quantiteDefectueuse: quantiteDefectueuse,
+            motif: motif,
+            description: description,
+            doitEtreRelivree: doitEtreRelivree,
+            actionChoisie: actionChoisie,
+          );
+          if (!context.mounted) return success;
           if (success) {
+            final String message;
+            if (doitEtreRelivree && actionChoisie == 'NOUVELLE_COMMANDE') {
+              message = 'Litige enregistré : une nouvelle commande de $quantiteDefectueuse unité(s) a été créée pour le client.';
+            } else if (doitEtreRelivree) {
+              message = 'Litige enregistré : $quantiteDefectueuse unité(s) reprogrammée(s) pour relivraison garantie.';
+            } else {
+              message = 'Litige enregistré sans relivraison (constat transmis).';
+            }
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Litige transmis à l\'administration avec demande de relivraison.'),
-                backgroundColor: Colors.orange,
+              SnackBar(
+                content: Text(message),
+                backgroundColor: Colors.orange.shade800,
+                duration: const Duration(seconds: 4),
               ),
             );
             Navigator.pop(context);
@@ -268,6 +292,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
               ),
             );
           }
+          return success;
         },
       ),
     );
