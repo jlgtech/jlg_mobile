@@ -16,13 +16,16 @@ class DeliveryItem {
   });
 
   factory DeliveryItem.fromJson(Map<String, dynamic> json) {
+    final pu = double.tryParse((json['prix_unitaire_facture'] ?? json['prix_unitaire'] ?? '0').toString()) ?? 0.0;
+    final qte = (json['quantite_commandee'] is num) ? (json['quantite_commandee'] as num).toInt() : 1;
+    final total = double.tryParse((json['total_ligne'] ?? (pu * qte)).toString()) ?? (pu * qte);
     return DeliveryItem(
-      articleId: json['article_id'] ?? '',
-      designation: json['designation'] ?? json['article']?['designation'] ?? 'Produit',
-      quantiteCommandee: json['quantite_commandee'] ?? 1,
-      quantiteOfferte: json['quantite_offerte'] ?? 0,
-      prixUnitaire: double.tryParse(json['prix_unitaire'].toString()) ?? 0.0,
-      totalLigne: double.tryParse(json['total_ligne'].toString()) ?? 0.0,
+      articleId: json['article_id']?.toString() ?? '',
+      designation: json['article_designation'] ?? json['designation'] ?? json['article']?['designation'] ?? 'Produit',
+      quantiteCommandee: qte,
+      quantiteOfferte: (json['quantite_offerte'] is num) ? (json['quantite_offerte'] as num).toInt() : 0,
+      prixUnitaire: pu,
+      totalLigne: total,
     );
   }
 
@@ -49,6 +52,11 @@ class DeliveryOrder {
   final String? precisionPaiement;
   final double montantTotal;
   final String statut;
+  final bool estPayee;
+  final String? payeeLe;
+  final String? encaissePar;
+  final bool confirmationGpsRequise;
+  final bool premiereLivraisonAdresse;
   final DateTime dateCreation;
   final List<DeliveryItem> items;
   final double? latitude;
@@ -65,6 +73,11 @@ class DeliveryOrder {
     this.precisionPaiement,
     required this.montantTotal,
     required this.statut,
+    this.estPayee = false,
+    this.payeeLe,
+    this.encaissePar,
+    this.confirmationGpsRequise = false,
+    this.premiereLivraisonAdresse = false,
     required this.dateCreation,
     required this.items,
     this.latitude,
@@ -72,21 +85,29 @@ class DeliveryOrder {
   });
 
   factory DeliveryOrder.fromJson(Map<String, dynamic> json) {
-    var rawItems = json['items'] as List? ?? [];
-    List<DeliveryItem> parsedItems = rawItems.map((i) => DeliveryItem.fromJson(i as Map<String, dynamic>)).toList();
+    var rawItems = (json['lignes'] as List?) ?? (json['items'] as List?) ?? [];
+    List<DeliveryItem> parsedItems = rawItems
+        .whereType<Map<String, dynamic>>()
+        .map((i) => DeliveryItem.fromJson(i))
+        .toList();
 
     return DeliveryOrder(
-      id: json['id'] ?? '',
+      id: json['id']?.toString() ?? '',
       code: json['code_commande'] ?? json['code'] ?? 'CMD-${json['id']?.toString().substring(0, 8).toUpperCase() ?? ''}',
-      clientNom: json['client_passage_nom'] ?? json['clientNom'] ?? json['client']?['nom'] ?? 'Client Particulier',
-      clientTel: json['client_passage_telephone'] ?? json['clientTel'] ?? json['client']?['telephone'] ?? '',
-      clientEmail: json['client_passage_email'] ?? json['clientEmail'] ?? json['client']?['email'] ?? '',
-      adresseLivraison: json['adresse_livraison'] ?? json['adresseLivraison'] ?? 'Port-au-Prince',
-      modePaiement: json['mode_paiement'] ?? json['modePaiement'] ?? 'ESPECES',
-      precisionPaiement: json['precision_paiement'] ?? json['precisionPaiement'],
+      clientNom: json['client_nom'] ?? json['client_passage_nom'] ?? json['clientNom'] ?? json['client']?['nom'] ?? 'Client Particulier',
+      clientTel: json['client_telephone'] ?? json['client_passage_telephone'] ?? json['clientTel'] ?? json['client']?['telephone'] ?? '',
+      clientEmail: json['client_email'] ?? json['client_passage_email'] ?? json['clientEmail'] ?? json['client']?['email'] ?? '',
+      adresseLivraison: json['adresse_livraison'] ?? json['client_adresse'] ?? json['adresseLivraison'] ?? 'Port-au-Prince',
+      modePaiement: json['mode_paiement']?.toString() ?? json['modePaiement']?.toString() ?? 'ESPECES',
+      precisionPaiement: json['precision_paiement']?.toString() ?? json['precisionPaiement']?.toString(),
       montantTotal: double.tryParse(json['montant_total']?.toString() ?? json['montantTotal']?.toString() ?? '0') ?? 0.0,
-      statut: json['statut'] ?? 'ASSIGNEE',
-      dateCreation: DateTime.tryParse(json['cree_le'] ?? json['dateCreation'] ?? '') ?? DateTime.now(),
+      statut: json['statut']?.toString() ?? 'ASSIGNEE',
+      estPayee: json['est_payee'] == true,
+      payeeLe: json['payee_le']?.toString(),
+      encaissePar: json['encaisse_par']?.toString(),
+      confirmationGpsRequise: json['confirmation_gps_requise'] == true,
+      premiereLivraisonAdresse: json['premiere_livraison_adresse'] == true,
+      dateCreation: DateTime.tryParse(json['cree_le']?.toString() ?? json['dateCreation']?.toString() ?? '') ?? DateTime.now(),
       items: parsedItems,
       latitude: json['latitude_livraison'] != null ? double.tryParse(json['latitude_livraison'].toString()) : null,
       longitude: json['longitude_livraison'] != null ? double.tryParse(json['longitude_livraison'].toString()) : null,
@@ -105,6 +126,11 @@ class DeliveryOrder {
       'precisionPaiement': precisionPaiement,
       'montantTotal': montantTotal,
       'statut': statut,
+      'est_payee': estPayee,
+      'payee_le': payeeLe,
+      'encaisse_par': encaissePar,
+      'confirmation_gps_requise': confirmationGpsRequise,
+      'premiere_livraison_adresse': premiereLivraisonAdresse,
       'dateCreation': dateCreation.toIso8601String(),
       'items': items.map((i) => i.toJson()).toList(),
       'latitude_livraison': latitude,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/delivery_model.dart';
+import '../services/delivery_service.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/connectivity_service.dart';
 import '../../../core/network/offline_sync_service.dart';
@@ -122,6 +123,50 @@ class DeliveryProvider extends ChangeNotifier {
       lng: targetLng,
     );
 
+    if (result.success) {
+      await fetchOrders();
+      return true;
+    }
+    _errorMessage = result.errorMessage;
+    notifyListeners();
+    return false;
+  }
+
+  Future<bool> confirmLocation(
+    String orderId, {
+    required double lat,
+    required double lng,
+    String? rawAddress,
+    String? landmark,
+  }) async {
+    _errorMessage = null;
+    final result = await DeliveryService.confirmOrderLocation(
+      orderId,
+      lat: lat,
+      lng: lng,
+      rawAddress: rawAddress,
+      landmark: landmark,
+    );
+    if (result.success) {
+      await fetchOrders();
+      return true;
+    }
+    _errorMessage = result.errorMessage;
+    notifyListeners();
+    return false;
+  }
+
+  Future<bool> recordPayment(
+    String orderId, {
+    required String modePaiement,
+    String? notesPaiement,
+  }) async {
+    _errorMessage = null;
+    final result = await DeliveryService.recordPayment(
+      orderId,
+      modePaiement: modePaiement,
+      notesPaiement: notesPaiement,
+    );
     if (result.success) {
       await fetchOrders();
       return true;

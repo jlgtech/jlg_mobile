@@ -9,6 +9,7 @@ import '../../../widgets/overlays/app_notifications.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/station_provider.dart';
 import '../models/station_models.dart';
+import '../widgets/station_receipt_modal.dart';
 
 import '../../../widgets/overlays/app_drawer.dart';
 import '../../../widgets/layout/app_nav_tab.dart';
@@ -750,10 +751,75 @@ class _StationDashboardViewState extends State<StationDashboardView> {
             const SizedBox(height: 12),
             Row(
               children: [
-                if (tx.statut == "EN_ATTENTE")
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF0C4E55),
+                    side: const BorderSide(color: Color(0xFF0C4E55)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  onPressed: () {
+                    final stationProvider = Provider.of<StationProvider>(context, listen: false);
+                    StationReceiptModal.show(
+                      context,
+                      transaction: tx,
+                      companyConfig: stationProvider.companyConfig,
+                    );
+                  },
+                  icon: const Icon(Icons.receipt_long, size: 16),
+                  label: const Text("Ticket", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+                const SizedBox(width: 8),
+                if (tx.statut == "EN_ATTENTE") ...[
+                  IconButton(
+                    tooltip: "Annuler ce ticket",
+                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text("Annuler ce ticket ?"),
+                          content: Text("Êtes-vous sûr de vouloir annuler le ticket #${tx.codeTicket} pour le camion ${tx.camion?.plaqueImmatriculation ?? ''} ?"),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: const Text("Non, conserver"),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                              onPressed: () async {
+                                Navigator.of(ctx).pop();
+                                final provider = Provider.of<StationProvider>(context, listen: false);
+                                final messenger = ScaffoldMessenger.of(context);
+                                final ok = await provider.cancelTransaction(tx.id);
+                                if (ok) {
+                                  messenger.showSnackBar(const SnackBar(
+                                    content: Text("Ticket annulé avec succès."),
+                                    backgroundColor: Colors.redAccent,
+                                  ));
+                                } else if (provider.errorMessage != null) {
+                                  messenger.showSnackBar(SnackBar(
+                                    content: Text(provider.errorMessage!),
+                                    backgroundColor: Colors.red,
+                                  ));
+                                }
+                              },
+                              child: const Text("Oui, annuler"),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 4),
                   Expanded(
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(foregroundColor: AppTheme.accentMint),
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0284C7),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
                       onPressed: () async {
                         final provider = Provider.of<StationProvider>(context, listen: false);
                         final messenger = ScaffoldMessenger.of(context);
@@ -770,14 +836,20 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                           ));
                         }
                       },
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text("Ouvrir Vanne"),
+                      icon: const Icon(Icons.play_arrow, size: 18),
+                      label: const Text("Ouvrir Vanne", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     ),
                   ),
+                ],
                 if (tx.statut == "EN_COURS")
                   Expanded(
                     child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentMint),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accentMint,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
                       onPressed: () async {
                         final provider = Provider.of<StationProvider>(context, listen: false);
                         final messenger = ScaffoldMessenger.of(context);
@@ -794,8 +866,8 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                           ));
                         }
                       },
-                      icon: const Icon(Icons.check),
-                      label: const Text("Terminer & Fermer Vanne"),
+                      icon: const Icon(Icons.check, size: 18),
+                      label: const Text("Terminer & Fermer Vanne", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     ),
                   ),
               ],

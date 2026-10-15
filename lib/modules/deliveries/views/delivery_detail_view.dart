@@ -49,8 +49,8 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
 
     final success = await provider.completeDelivery(
       widget.order.id,
-      lat: AppConfig.fallbackLatitude,
-      lng: AppConfig.fallbackLongitude,
+      lat: widget.order.latitude ?? AppConfig.fallbackLatitude,
+      lng: widget.order.longitude ?? AppConfig.fallbackLongitude,
     );
 
     setState(() => _isProcessing = false);
@@ -59,7 +59,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Livraison validée avec succès ! Géolocalisation GPS enregistrée.'),
+          content: Text('Livraison validée avec succès ! Remise client confirmée.'),
           backgroundColor: Color(0xFF0C4E55),
         ),
       );
@@ -72,6 +72,169 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
         ),
       );
     }
+  }
+
+  void _openPaymentModal() {
+    String selectedMode = widget.order.modePaiement;
+    final notesController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: EdgeInsets.only(
+              top: 16,
+              left: 20,
+              right: 20,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.point_of_sale, color: Color(0xFF0C4E55), size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Encaisser le Paiement",
+                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0C4E55)),
+                          ),
+                          Text(
+                            "Règlement de la commande à la livraison",
+                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Montant à Encaisser :", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text(
+                        "${widget.order.montantTotal.toStringAsFixed(2)} HTG",
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: Color(0xFF0C4E55)),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  initialValue: ["ESPECES", "MONCASH", "NATCASH", "VIREMENT", "CHEQUE"].contains(selectedMode)
+                      ? selectedMode
+                      : "ESPECES",
+                  decoration: InputDecoration(
+                    labelText: "Mode d'Encaissement",
+                    prefixIcon: const Icon(Icons.payment),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: "ESPECES", child: Text("ESPÈCES (Cash)")),
+                    DropdownMenuItem(value: "MONCASH", child: Text("MONCASH")),
+                    DropdownMenuItem(value: "NATCASH", child: Text("NATCASH")),
+                    DropdownMenuItem(value: "VIREMENT", child: Text("VIREMENT BANCAIRE")),
+                    DropdownMenuItem(value: "CHEQUE", child: Text("CHÈQUE")),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setModalState(() => selectedMode = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: notesController,
+                  decoration: InputDecoration(
+                    labelText: "Notes ou Référence (Optionnel)",
+                    hintText: "Ex: Réf MonCash #88219...",
+                    prefixIcon: const Icon(Icons.note_alt_outlined),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0C4E55),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    setState(() => _isProcessing = true);
+                    final provider = Provider.of<DeliveryProvider>(context, listen: false);
+                    final ok = await provider.recordPayment(
+                      widget.order.id,
+                      modePaiement: selectedMode,
+                      notesPaiement: notesController.text.trim().isNotEmpty
+                          ? notesController.text.trim()
+                          : "Paiement encaissé par le livreur (${widget.order.code})",
+                    );
+                    setState(() => _isProcessing = false);
+                    if (!mounted) return;
+                    if (ok) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Paiement de ${widget.order.montantTotal.toStringAsFixed(2)} HTG validé avec succès !"),
+                          backgroundColor: const Color(0xFF0C4E55),
+                        ),
+                      );
+                      Navigator.of(context).pop();
+                    } else if (provider.errorMessage != null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(provider.errorMessage!),
+                          backgroundColor: Colors.red.shade700,
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text("Valider l'Encaissement", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _openDisputeModal() {
@@ -237,6 +400,21 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                         order.clientTel.isEmpty ? 'Téléphone non renseigné' : order.clientTel,
                         style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
+                      trailing: order.clientTel.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.phone, color: Color(0xFF0C4E55)),
+                              tooltip: "Appeler le client",
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("Numéro du destinataire : ${order.clientTel}"),
+                                    backgroundColor: const Color(0xFF0C4E55),
+                                    duration: const Duration(seconds: 3),
+                                  ),
+                                );
+                              },
+                            )
+                          : null,
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -265,16 +443,54 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        const Icon(Icons.payment_outlined, color: Colors.grey, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Mode : ${order.modePaiement} ${order.precisionPaiement != null ? "(${order.precisionPaiement})" : ""}',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    const SizedBox(height: 12),
+
+                    // Badge Statut Paiement (Payée vs À Encaisser)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: order.estPayee ? Colors.teal.shade50 : Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: order.estPayee ? Colors.teal.shade300 : Colors.amber.shade400,
                         ),
-                      ],
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            order.estPayee ? Icons.check_circle : Icons.pending_outlined,
+                            size: 18,
+                            color: order.estPayee ? Colors.teal.shade700 : Colors.amber.shade900,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  order.estPayee ? "COMMANDE PAYÉE" : "PAIEMENT À ENCAISSER",
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w900,
+                                    color: order.estPayee ? Colors.teal.shade900 : Colors.amber.shade900,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  order.estPayee
+                                      ? "Mode : ${order.modePaiement} ${order.precisionPaiement != null ? "(${order.precisionPaiement})" : ""}"
+                                      : "Montant à percevoir : ${order.montantTotal.toStringAsFixed(2)} HTG (${order.modePaiement})",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: order.estPayee ? Colors.teal.shade800 : Colors.brown.shade800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
                     const SizedBox(height: 14),
@@ -405,6 +621,29 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
 
             // Action Buttons
             if (!isDone && !isDispute) ...[
+              // Bouton d'encaissement si non payée
+              if (!order.estPayee) ...[
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.point_of_sale),
+                    label: Text(
+                      'Encaisser le Paiement (${order.montantTotal.toStringAsFixed(2)} HTG)',
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber.shade800,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 2,
+                    ),
+                    onPressed: _isProcessing ? null : _openPaymentModal,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
               if (!inProgress)
                 SizedBox(
                   width: double.infinity,

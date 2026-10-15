@@ -7,6 +7,7 @@ import '../../../widgets/overlays/app_drawer.dart';
 import '../../../widgets/layout/app_nav_tab.dart';
 import '../providers/station_provider.dart';
 import '../models/station_models.dart';
+import '../widgets/station_receipt_modal.dart';
 
 class StationHistoryView extends StatefulWidget {
   final ValueChanged<AppNavTab>? onSelectTab;
@@ -300,6 +301,31 @@ class _StationHistoryViewState extends State<StationHistoryView> {
                   ),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF0C4E55),
+                  side: const BorderSide(color: Color(0xFF0C4E55)),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  final stationProvider = Provider.of<StationProvider>(context, listen: false);
+                  StationReceiptModal.show(
+                    context,
+                    transaction: tx,
+                    companyConfig: stationProvider.companyConfig,
+                  );
+                },
+                icon: const Icon(Icons.receipt_long, size: 16),
+                label: const Text(
+                  "Voir Reçu / Ticket Officiel",
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ),
             ),
           ],
         ),

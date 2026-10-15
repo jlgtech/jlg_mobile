@@ -428,11 +428,28 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.payment, size: 16, color: Colors.grey),
-                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: order.estPayee ? Colors.teal.shade50 : Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: order.estPayee ? Colors.teal.shade200 : Colors.amber.shade300,
+                          ),
+                        ),
+                        child: Text(
+                          order.estPayee ? "Payée" : "À encaisser",
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: order.estPayee ? Colors.teal.shade800 : Colors.amber.shade900,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       Text(
                         order.modePaiement,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
                       ),
                     ],
                   ),

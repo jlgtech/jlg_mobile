@@ -171,6 +171,7 @@ class StationProvider extends ChangeNotifier {
       final txResp = await ApiClient.post('/station/transactions', {
         'camion_id': camionId,
         'montant_htg': montantHtg,
+        'mode_paiement': modePaiement,
       });
 
       if (txResp.statusCode == 200 || txResp.statusCode == 201) {
@@ -188,6 +189,10 @@ class StationProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  Future<bool> cancelTransaction(String transactionId) async {
+    return updateStatus(transactionId, 'ANNULEE');
   }
 
   Future<bool> updateStatus(String transactionId, String nouveauStatut) async {

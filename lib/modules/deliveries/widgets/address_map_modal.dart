@@ -58,11 +58,12 @@ class _AddressMapModalState extends State<AddressMapModal> {
 
     final provider = Provider.of<DeliveryProvider>(context, listen: false);
     
-    // Complete or update position
-    final success = await provider.completeDelivery(
+    // Save confirmed location and address without forcing order completion
+    final success = await provider.confirmLocation(
       widget.order.id,
       lat: _currentPosition.latitude,
       lng: _currentPosition.longitude,
+      rawAddress: _addressController.text.trim(),
     );
 
     setState(() => _isSaving = false);
