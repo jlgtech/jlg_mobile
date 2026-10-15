@@ -107,10 +107,13 @@ class _DeliveryListViewState extends State<DeliveryListView> {
           final completedCount = provider.orders.where((o) => o.statut == 'CLOTUREE' || o.statut == 'LIVREE_EN_ATTENTE').toList().length;
           final progressRatio = totalCount > 0 ? (completedCount / totalCount) : 0.0;
 
-          return Column(
-            children: [
-              // Banniere statut offline / sync
-              const OfflineStatusBanner(),
+          return SafeArea(
+            top: false,
+            bottom: true,
+            child: Column(
+              children: [
+                // Banniere statut offline / sync
+                const OfflineStatusBanner(),
               // Hero Tour Progress Header Card
               Container(
                 decoration: const BoxDecoration(
@@ -245,7 +248,7 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                         : RefreshIndicator(
                             onRefresh: () => provider.fetchOrders(),
                             child: ListView.builder(
-                              padding: const EdgeInsets.all(16),
+                              padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 36),
                               itemCount: orders.length,
                               itemBuilder: (context, index) {
                                 final order = orders[index];
@@ -255,7 +258,8 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                           )),
               ),
             ],
-          );
+          ),
+        );
         },
       ),
     );

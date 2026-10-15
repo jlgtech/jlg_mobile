@@ -16,17 +16,23 @@ class DisputeDialog extends StatefulWidget {
 
 class _DisputeDialogState extends State<DisputeDialog> {
   final _motifController = TextEditingController();
-  String _selectedReason = 'Produit Perclé / Fuite';
+  late String _selectedReason;
   bool _isSubmitting = false;
 
-  final List<String> _commonReasons = [
+  static const List<String> _commonReasons = [
     'Produit Défectueux (Fuite / Défaut usine)',
-    'Sachet ou Bouteille Perclé(e) / Cassé(e)',
+    'Sachet ou Bouteille Percé(e) / Cassé(e)',
     'Colis Endommagé en cours de Transport',
     'Erreur de Quantité ou Référence Livrée',
     'Client Absent au Point de Livraison',
     'Refus de Réception par le Client',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedReason = _commonReasons.first;
+  }
 
   @override
   void dispose() {
@@ -37,6 +43,8 @@ class _DisputeDialogState extends State<DisputeDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: false,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,8 +68,13 @@ class _DisputeDialogState extends State<DisputeDialog> {
           ),
         ],
       ),
-      content: SingleChildScrollView(
-        child: Column(
+      content: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.55,
+        ),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -79,7 +92,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
-                  value: _selectedReason,
+                  value: _commonReasons.contains(_selectedReason) ? _selectedReason : _commonReasons.first,
                   isExpanded: true,
                   style: const TextStyle(
                     fontSize: 13,
@@ -124,7 +137,8 @@ class _DisputeDialogState extends State<DisputeDialog> {
           ],
         ),
       ),
-      actions: [
+    ),
+    actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text('Annuler', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),

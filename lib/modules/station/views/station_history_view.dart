@@ -154,7 +154,7 @@ class _StationHistoryViewState extends State<StationHistoryView> {
                           ],
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.all(16),
+                          padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 36),
                           itemCount: historyList.length,
                           itemBuilder: (context, index) {
                             final tx = historyList[index];

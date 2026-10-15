@@ -1,6 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jlg_mobile/modules/station/models/station_models.dart';
 import 'package:jlg_mobile/modules/deliveries/models/delivery_model.dart';
+import 'package:jlg_mobile/modules/deliveries/widgets/dispute_dialog.dart';
 
 void main() {
   group('Station Models Tests', () {
@@ -115,6 +117,35 @@ void main() {
       expect(order.estPayee, true);
       expect(order.encaissePar, 'LIVREUR');
       expect(order.statut, 'CLOTUREE');
+    });
+
+    testWidgets('DisputeDialog renders safely without Dropdown assertion error', (tester) async {
+      String? submittedMotif;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DisputeDialog(
+              orderCode: 'CMD-TEST-001',
+              onSubmit: (motif) {
+                submittedMotif = motif;
+              },
+            ),
+          ),
+        ),
+      );
+
+      // Verify title and order code rendered
+      expect(find.text('Déclaration de Litige'), findsOneWidget);
+      expect(find.text('Commande : CMD-TEST-001'), findsOneWidget);
+      expect(find.byType(DropdownButton<String>), findsOneWidget);
+
+      // Tap submit and verify default motif submitted without error
+      await tester.tap(find.text('Transmettre Litige'));
+      await tester.pump();
+
+      expect(submittedMotif, isNotNull);
+      expect(submittedMotif, contains('Produit Défectueux'));
     });
   });
 }

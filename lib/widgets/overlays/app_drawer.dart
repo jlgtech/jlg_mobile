@@ -219,6 +219,7 @@ class AppDrawer extends StatelessWidget {
                 authProvider.logout(context);
               },
             ),
+            SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
           ],
         ),
       ),

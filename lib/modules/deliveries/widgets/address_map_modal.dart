@@ -206,7 +206,7 @@ class _AddressMapModalState extends State<AddressMapModal> {
 
             // Bottom Form & Confirmation Section
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 boxShadow: [

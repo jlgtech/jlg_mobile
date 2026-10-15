@@ -294,7 +294,7 @@ class _StationDashboardViewState extends State<StationDashboardView> {
         child: RefreshIndicator(
           onRefresh: () => stationProvider.fetchQueue(),
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 36),
             children: [
               // Header Station Summary & Agent Identity Card
               Container(

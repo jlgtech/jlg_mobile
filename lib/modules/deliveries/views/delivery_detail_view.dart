@@ -81,24 +81,28 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
-          return Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            padding: EdgeInsets.only(
-              top: 16,
-              left: 20,
-              right: 20,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+          return SafeArea(
+            top: false,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: EdgeInsets.only(
+                top: 16,
+                left: 20,
+                right: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + MediaQuery.of(ctx).padding.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                 Center(
                   child: Container(
                     width: 44,
@@ -229,7 +233,9 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                   icon: const Icon(Icons.check_circle_outline),
                   label: const Text("Valider l'Encaissement", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 ),
-              ],
+                  ],
+                ),
+              ),
             ),
           );
         },
@@ -274,6 +280,8 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     final isDispute = order.statut == 'EN_ATTENTE_DE_RELIVRAISON';
     final inProgress = order.statut == 'EN_COURS_DE_LIVRAISON';
 
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -284,10 +292,13 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: SafeArea(
+        top: false,
+        bottom: true,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding + 36),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Status Card
             Container(
@@ -703,6 +714,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

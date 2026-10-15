@@ -298,9 +298,12 @@ class _SettingsViewState extends State<SettingsView> {
         title: const Text("Paramètres"),
         centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+      body: SafeArea(
+        top: false,
+        bottom: true,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 36),
+          children: [
           // USER PROFILE HERO CARD
           Card(
             elevation: 3,
@@ -574,8 +577,9 @@ class _SettingsViewState extends State<SettingsView> {
           const SizedBox(height: 32),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSectionHeader(String title) {
     return Padding(
