@@ -49,12 +49,14 @@ class DeliveryProvider extends ChangeNotifier {
   }
 
   List<DeliveryOrder> get filteredOrders {
+    // Les commandes de retrait sur place (le client récupère lui-même) ne doivent JAMAIS apparaître pour les chauffeurs
+    final deliveryOrders = _orders.where((o) => !o.isPickupOrder).toList();
     if (_activeTab == 'LIVREES') {
-      return _orders.where((o) => o.statut == 'CLOTUREE' || o.statut == 'LIVREE_EN_ATTENTE').toList();
+      return deliveryOrders.where((o) => o.statut == 'CLOTUREE' || o.statut == 'LIVREE_EN_ATTENTE').toList();
     } else if (_activeTab == 'LITIGES') {
-      return _orders.where((o) => o.statut == 'EN_ATTENTE_DE_RELIVRAISON' || o.statut == 'ANNULEE').toList();
+      return deliveryOrders.where((o) => o.statut == 'EN_ATTENTE_DE_RELIVRAISON' || o.statut == 'ANNULEE').toList();
     } else {
-      return _orders.where((o) =>
+      return deliveryOrders.where((o) =>
         o.statut != 'CLOTUREE' &&
         o.statut != 'EN_ATTENTE_DE_RELIVRAISON' &&
         o.statut != 'ANNULEE'

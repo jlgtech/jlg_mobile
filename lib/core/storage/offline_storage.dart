@@ -55,7 +55,10 @@ class OfflineStorage {
   static Future<List<DeliveryOrder>> loadOrders() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getStringList(_keyOrders) ?? [];
-    return raw.map((s) => DeliveryOrder.fromJson(jsonDecode(s) as Map<String, dynamic>)).toList();
+    return raw
+        .map((s) => DeliveryOrder.fromJson(jsonDecode(s) as Map<String, dynamic>))
+        .where((o) => !o.isPickupOrder)
+        .toList();
   }
 
   /// Retourne la date/heure de la dernière synchronisation avec l'API.
@@ -137,6 +140,12 @@ class OfflineStorage {
           items: o.items,
           latitude: o.latitude,
           longitude: o.longitude,
+          estRetraitSurPlace: o.estRetraitSurPlace,
+          estPayee: o.estPayee,
+          payeeLe: o.payeeLe,
+          encaissePar: o.encaissePar,
+          confirmationGpsRequise: o.confirmationGpsRequise,
+          premiereLivraisonAdresse: o.premiereLivraisonAdresse,
         );
       }
       return o;

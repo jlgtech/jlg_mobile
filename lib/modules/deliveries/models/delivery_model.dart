@@ -57,6 +57,7 @@ class DeliveryOrder {
   final String? encaissePar;
   final bool confirmationGpsRequise;
   final bool premiereLivraisonAdresse;
+  final bool estRetraitSurPlace;
   final DateTime dateCreation;
   final List<DeliveryItem> items;
   final double? latitude;
@@ -78,11 +79,38 @@ class DeliveryOrder {
     this.encaissePar,
     this.confirmationGpsRequise = false,
     this.premiereLivraisonAdresse = false,
+    this.estRetraitSurPlace = false,
     required this.dateCreation,
     required this.items,
     this.latitude,
     this.longitude,
   });
+
+  /// Indique si la commande est à récupérer sur place par le client (retrait direct / comptoir / dépôt).
+  bool get isPickupOrder {
+    if (estRetraitSurPlace) return true;
+    final addr = adresseLivraison.toLowerCase();
+    const pickupKeywords = [
+      'dépôt',
+      'depot',
+      'comptoir',
+      'sur place',
+      'retrait',
+      'recuper',
+      'récupér',
+      'lui-même',
+      'lui-meme',
+      'lui meme',
+      'a emporter',
+      'à emporter',
+      'enlevement',
+      'enlèvement',
+      'magasin',
+      'boutique',
+      'guichet',
+    ];
+    return pickupKeywords.any((k) => addr.contains(k));
+  }
 
   factory DeliveryOrder.fromJson(Map<String, dynamic> json) {
     var rawItems = (json['lignes'] as List?) ?? (json['items'] as List?) ?? [];
@@ -93,7 +121,7 @@ class DeliveryOrder {
 
     return DeliveryOrder(
       id: json['id']?.toString() ?? '',
-      code: json['code_commande'] ?? json['code'] ?? 'CMD-${json['id']?.toString().substring(0, 8).toUpperCase() ?? ''}',
+      code: json['code_commande'] ?? json['code'] ?? 'CMD-${(json['id']?.toString() ?? '').length >= 8 ? (json['id']?.toString() ?? '').substring(0, 8).toUpperCase() : (json['id']?.toString() ?? '').toUpperCase()}',
       clientNom: json['client_nom'] ?? json['client_passage_nom'] ?? json['clientNom'] ?? json['client']?['nom'] ?? 'Client Particulier',
       clientTel: json['client_telephone'] ?? json['client_passage_telephone'] ?? json['clientTel'] ?? json['client']?['telephone'] ?? '',
       clientEmail: json['client_email'] ?? json['client_passage_email'] ?? json['clientEmail'] ?? json['client']?['email'] ?? '',
@@ -107,6 +135,7 @@ class DeliveryOrder {
       encaissePar: json['encaisse_par']?.toString(),
       confirmationGpsRequise: json['confirmation_gps_requise'] == true,
       premiereLivraisonAdresse: json['premiere_livraison_adresse'] == true,
+      estRetraitSurPlace: json['est_retrait_sur_place'] == true || json['estRetraitSurPlace'] == true,
       dateCreation: DateTime.tryParse(json['cree_le']?.toString() ?? json['dateCreation']?.toString() ?? '') ?? DateTime.now(),
       items: parsedItems,
       latitude: json['latitude_livraison'] != null ? double.tryParse(json['latitude_livraison'].toString()) : null,
@@ -131,6 +160,7 @@ class DeliveryOrder {
       'encaisse_par': encaissePar,
       'confirmation_gps_requise': confirmationGpsRequise,
       'premiere_livraison_adresse': premiereLivraisonAdresse,
+      'est_retrait_sur_place': estRetraitSurPlace,
       'dateCreation': dateCreation.toIso8601String(),
       'items': items.map((i) => i.toJson()).toList(),
       'latitude_livraison': latitude,

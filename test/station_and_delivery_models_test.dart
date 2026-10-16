@@ -119,6 +119,40 @@ void main() {
       expect(order.statut, 'CLOTUREE');
     });
 
+    test('DeliveryOrder correctly identifies pickup and self-service orders', () {
+      // 1. Commande avec flag explicite est_retrait_sur_place
+      final orderFlag = DeliveryOrder.fromJson({
+        'id': 'cmd-p1',
+        'est_retrait_sur_place': true,
+        'adresse_livraison': 'Route de Freres',
+      });
+      expect(orderFlag.isPickupOrder, true);
+
+      // 2. Commande où le client vient récupérer lui-même
+      final orderSelfPickup = DeliveryOrder.fromJson({
+        'id': 'cmd-p2',
+        'est_retrait_sur_place': false,
+        'adresse_livraison': 'Le client vient récupérer lui-même la marchandise',
+      });
+      expect(orderSelfPickup.isPickupOrder, true);
+
+      // 3. Commande retrait comptoir / dépôt
+      final orderComptoir = DeliveryOrder.fromJson({
+        'id': 'cmd-p3',
+        'est_retrait_sur_place': false,
+        'adresse_livraison': 'Retrait direct au Comptoir Aquafresh',
+      });
+      expect(orderComptoir.isPickupOrder, true);
+
+      // 4. Vraie livraison physique à domicile
+      final orderDelivery = DeliveryOrder.fromJson({
+        'id': 'cmd-d1',
+        'est_retrait_sur_place': false,
+        'adresse_livraison': '12 Rue Panamericaine, Petion-Ville',
+      });
+      expect(orderDelivery.isPickupOrder, false);
+    });
+
     testWidgets('DisputeDialog renders safely with quantity stepper and redelivery options', (tester) async {
       final dummyOrder = DeliveryOrder(
         id: 'ord-123',
