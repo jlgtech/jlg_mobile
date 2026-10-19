@@ -30,7 +30,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Livraison démarrée ! En route vers le client...'),
-          backgroundColor: Colors.teal,
+          backgroundColor: AppTheme.primaryRoyal,
         ),
       );
       Navigator.pop(context);
@@ -61,7 +61,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Livraison validée avec succès ! Remise client confirmée.'),
-          backgroundColor: Color(0xFF0C4E55),
+          backgroundColor: AppTheme.primaryRoyal,
         ),
       );
       Navigator.pop(context);
@@ -136,12 +136,12 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                       decoration: BoxDecoration(
                         color: isDarkModal
                             ? AppTheme.accentMint.withValues(alpha: 0.15)
-                            : Colors.teal.shade50,
+                            : const Color(0xFFEBF3FC),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
                         Icons.point_of_sale,
-                        color: isDarkModal ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                        color: isDarkModal ? AppTheme.accentMint : AppTheme.primaryRoyal,
                         size: 24,
                       ),
                     ),
@@ -193,7 +193,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                         style: TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 17,
-                          color: isDarkModal ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                          color: isDarkModal ? AppTheme.accentMint : AppTheme.primaryRoyal,
                         ),
                       ),
                     ],
@@ -233,8 +233,8 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isDarkModal ? AppTheme.accentMint : const Color(0xFF0C4E55),
-                    foregroundColor: isDarkModal ? const Color(0xFF042124) : Colors.white,
+                    backgroundColor: isDarkModal ? AppTheme.accentMint : AppTheme.primaryRoyal,
+                    foregroundColor: isDarkModal ? const Color(0xFF03162C) : Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -255,7 +255,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text("Paiement de ${widget.order.montantTotal.toStringAsFixed(2)} HTG validé avec succès !"),
-                          backgroundColor: const Color(0xFF0C4E55),
+                          backgroundColor: AppTheme.primaryRoyal,
                         ),
                       );
                       Navigator.of(context).pop();
@@ -352,7 +352,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
           order.code,
           style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
         ),
-        backgroundColor: const Color(0xFF0C4E55),
+        backgroundColor: AppTheme.primaryRoyal,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -369,13 +369,13 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isDone
-                    ? Colors.teal[50]
-                    : (isDispute ? Colors.orange[50] : Colors.blue[50]),
+                    ? const Color(0xFFEFF6FF)
+                    : (isDispute ? Colors.orange[50] : const Color(0xFFEFF6FF)),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: isDone
-                      ? Colors.teal[200]!
-                      : (isDispute ? Colors.orange[200]! : Colors.blue[200]!),
+                      ? const Color(0xFFBAE6FD)
+                      : (isDispute ? Colors.orange[200]! : const Color(0xFFBAE6FD)),
                 ),
               ),
               child: Row(
@@ -385,8 +385,8 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                         ? Icons.check_circle_outline
                         : (isDispute ? Icons.warning_amber_outlined : Icons.local_shipping_outlined),
                     color: isDone
-                        ? Colors.teal[700]
-                        : (isDispute ? Colors.orange[800] : Colors.blue[700]),
+                        ? AppTheme.primaryRoyal
+                        : (isDispute ? Colors.orange[800] : AppTheme.primaryRoyal),
                     size: 32,
                   ),
                   const SizedBox(width: 12),
@@ -409,8 +409,8 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                             fontSize: 15,
                             fontWeight: FontWeight.w900,
                             color: isDone
-                                ? Colors.teal[900]
-                                : (isDispute ? Colors.orange[900] : Colors.blue[900]),
+                                ? AppTheme.textNight
+                                : (isDispute ? Colors.orange[900] : AppTheme.textNight),
                           ),
                         ),
                       ],
@@ -465,9 +465,9 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                       contentPadding: EdgeInsets.zero,
                       leading: CircleAvatar(
                         backgroundColor: isDark
-                            ? AppTheme.accentMint.withValues(alpha: 0.15)
-                            : const Color(0xFFE6F4F1),
-                        child: Icon(Icons.person, color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55)),
+                            ? AppTheme.accentSky.withValues(alpha: 0.15)
+                            : const Color(0xFFEBF3FC),
+                        child: Icon(Icons.person, color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal),
                       ),
                       title: Text(
                         order.clientNom,
@@ -483,13 +483,13 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                       ),
                       trailing: order.clientTel.isNotEmpty
                           ? IconButton(
-                              icon: Icon(Icons.phone, color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55)),
+                              icon: Icon(Icons.phone, color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal),
                               tooltip: "Appeler le client",
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text("Numéro du destinataire : ${order.clientTel}"),
-                                    backgroundColor: isDark ? AppTheme.cardDarkElevated : const Color(0xFF0C4E55),
+                                    backgroundColor: isDark ? AppTheme.cardDarkElevated : AppTheme.primaryRoyal,
                                     duration: const Duration(seconds: 3),
                                   ),
                                 );
@@ -520,7 +520,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                                   padding: const EdgeInsets.only(top: 2),
                                   child: Text(
                                     "GPS : ${order.latitude!.toStringAsFixed(4)}, ${order.longitude!.toStringAsFixed(4)} (Confirmé)",
-                                    style: TextStyle(fontSize: 11, color: isDark ? AppTheme.accentMint : Colors.teal.shade700, fontWeight: FontWeight.bold),
+                                    style: TextStyle(fontSize: 11, color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                             ],
@@ -583,7 +583,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                     // Bouton de Confirmation d'Adresse avec Carte Interactive (Spécification Première Livraison)
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0C4E55),
+                        backgroundColor: AppTheme.primaryRoyal,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -621,7 +621,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 14,
-                        color: Color(0xFF0C4E55),
+                        color: AppTheme.primaryRoyal,
                       ),
                     ),
                     const Divider(height: 20),
@@ -641,14 +641,14 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: Colors.teal[50],
+                                    color: const Color(0xFFEFF6FF),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Text(
                                     '${item.quantiteCommandee}x',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w900,
-                                      color: Color(0xFF0C4E55),
+                                      color: AppTheme.primaryRoyal,
                                     ),
                                   ),
                                 ),
@@ -667,10 +667,10 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                                       if (item.quantiteOfferte > 0)
                                         Text(
                                           '+${item.quantiteOfferte} Offert(s) (Bonus)',
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.teal[700],
+                                            color: AppTheme.primaryRoyal,
                                           ),
                                         ),
                                     ],
@@ -692,7 +692,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                           style: const TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 17,
-                            color: Color(0xFF0C4E55),
+                            color: AppTheme.primaryRoyal,
                           ),
                         ),
                       ],
@@ -789,7 +789,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                       style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0C4E55),
+                      backgroundColor: AppTheme.primaryRoyal,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       elevation: 3,

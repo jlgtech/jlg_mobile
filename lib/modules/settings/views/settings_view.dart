@@ -10,6 +10,7 @@ import '../../station/providers/station_provider.dart';
 
 import '../../../widgets/overlays/app_drawer.dart';
 import '../../../widgets/layout/app_nav_tab.dart';
+import '../../../widgets/buttons/notification_bell_button.dart';
 
 class SettingsView extends StatefulWidget {
   final ValueChanged<AppNavTab>? onSelectTab;
@@ -310,6 +311,9 @@ class _SettingsViewState extends State<SettingsView> {
         ),
         title: const Text("Paramètres"),
         centerTitle: true,
+        actions: const [
+          NotificationBellButton(),
+        ],
       ),
       body: SafeArea(
         top: false,
@@ -555,7 +559,20 @@ class _SettingsViewState extends State<SettingsView> {
                       context: context,
                       applicationName: AppConfig.appName,
                       applicationVersion: AppConfig.appVersion,
-                      applicationIcon: const Icon(Icons.water_drop_rounded, size: 48, color: AppTheme.primaryEmerald),
+                      applicationIcon: Container(
+                        width: 52,
+                        height: 52,
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.borderColor(context)),
+                        ),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                       children: const [
                         Text("Éditeur : JL Green Power Services & Supplies"),
                         Text("Portail Opérationnel Station de Remplissage"),

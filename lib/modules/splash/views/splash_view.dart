@@ -81,8 +81,8 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppTheme.primaryEmerald,
-              AppTheme.primaryDark,
+              AppTheme.primaryRoyal,
+              AppTheme.primaryDeep,
             ],
           ),
         ),
@@ -97,45 +97,48 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Animated Water Drop Branding Icon
+                        // Official Branding Logo
                         Container(
-                          padding: const EdgeInsets.all(24),
+                          width: 140,
+                          height: 140,
+                          padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.15),
+                            color: Colors.white,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 20,
+                                color: Colors.black.withValues(alpha: 0.25),
+                                blurRadius: 24,
                                 offset: const Offset(0, 10),
                               ),
                             ],
                           ),
-                          child: const Icon(
-                            Icons.water_drop_rounded,
-                            size: 80,
-                            color: Colors.white,
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            fit: BoxFit.contain,
                           ),
                         ),
                         const SizedBox(height: 28),
                         const Text(
-                          "JL GREEN",
+                          "TRANSPORT & LOGISTIC",
                           style: TextStyle(
-                            fontSize: 32,
+                            fontSize: 26,
                             fontWeight: FontWeight.w900,
                             color: Colors.white,
                             letterSpacing: 2.0,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          "AQUAFRESH & LOGISTICS",
+                          "SYSTÈME D'EXPLOITATION & DISTRIBUTION",
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.accentMint.withValues(alpha: 0.9),
-                            letterSpacing: 3.0,
+                            color: AppTheme.accentSky.withValues(alpha: 0.95),
+                            letterSpacing: 2.0,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
@@ -156,7 +159,7 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
                         width: 32,
                         height: 32,
                         child: CircularProgressIndicator(
-                          color: AppTheme.accentMint,
+                          color: AppTheme.accentSky,
                           strokeWidth: 3.0,
                         ),
                       ),

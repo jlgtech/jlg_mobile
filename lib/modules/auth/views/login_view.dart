@@ -5,6 +5,7 @@ import '../../../core/theme/theme_provider.dart';
 import '../../../widgets/layout/app_shell.dart';
 import '../../../widgets/overlays/app_notifications.dart';
 import '../../deliveries/views/delivery_list_view.dart';
+import '../../notifications/providers/notification_provider.dart';
 import '../providers/auth_provider.dart';
 
 class LoginView extends StatefulWidget {
@@ -37,6 +38,7 @@ class _LoginViewState extends State<LoginView> {
 
       if (!mounted) return;
       if (success) {
+        Provider.of<NotificationProvider>(context, listen: false).fetchNotifications();
         AppNotifications.showSuccess(context, "Connexion réussie !");
         final userRole = authProvider.currentUser?.role;
         if (userRole == 'LIVREUR' || userRole == 'CHAUFFEUR') {
@@ -70,22 +72,34 @@ class _LoginViewState extends State<LoginView> {
               children: [
                 // Logo & Header
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  width: 110,
+                  height: 110,
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: isDark ? AppTheme.accentMint.withValues(alpha: 0.15) : AppTheme.primaryEmerald.withValues(alpha: 0.1),
+                    color: Colors.white,
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isDark ? Colors.black : AppTheme.primaryRoyal).withValues(alpha: 0.15),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: isDark ? AppTheme.accentSky.withValues(alpha: 0.3) : AppTheme.borderColor(context),
+                      width: 1.5,
+                    ),
                   ),
-                  child: Icon(
-                    Icons.water_drop_rounded,
-                    size: 64,
-                    color: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    fit: BoxFit.contain,
                   ),
                 ),
                 const SizedBox(height: 24),
                 Text(
                   themeProvider.tr('app_title'),
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: isDark ? Colors.white : AppTheme.primaryEmerald,
+                        color: isDark ? Colors.white : AppTheme.primaryRoyal,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.5,
                       ),

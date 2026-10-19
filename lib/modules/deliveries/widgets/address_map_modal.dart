@@ -76,7 +76,7 @@ class _AddressMapModalState extends State<AddressMapModal> {
             content: Text(
               "Adresse et position GPS (${_currentPosition.latitude.toStringAsFixed(4)}, ${_currentPosition.longitude.toStringAsFixed(4)}) confirmées pour les prochaines livraisons !",
             ),
-            backgroundColor: const Color(0xFF0C4E55),
+            backgroundColor: AppTheme.primaryRoyal,
           ),
         );
         Navigator.pop(context, true);
@@ -107,11 +107,11 @@ class _AddressMapModalState extends State<AddressMapModal> {
               ),
               Text(
                 "Déplacez la carte pour caler le repère précis du client",
-                style: TextStyle(fontSize: 11, color: isDark ? AppTheme.accentMint : Colors.white70),
+                style: TextStyle(fontSize: 11, color: isDark ? AppTheme.accentSky : Colors.white70),
               ),
             ],
           ),
-          backgroundColor: isDark ? const Color(0xFF111827) : const Color(0xFF0C4E55),
+          backgroundColor: isDark ? AppTheme.cardDark : AppTheme.primaryRoyal,
           foregroundColor: Colors.white,
           elevation: 0,
           bottom: PreferredSize(
@@ -160,7 +160,7 @@ class _AddressMapModalState extends State<AddressMapModal> {
                             height: 50,
                             child: Container(
                               decoration: BoxDecoration(
-                                color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                                color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
                                 shape: BoxShape.circle,
                                 boxShadow: const [
                                   BoxShadow(
@@ -201,7 +201,7 @@ class _AddressMapModalState extends State<AddressMapModal> {
                           Icon(
                             Icons.my_location,
                             size: 16,
-                            color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                            color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -209,7 +209,7 @@ class _AddressMapModalState extends State<AddressMapModal> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                              color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
                             ),
                           ),
                         ],
@@ -244,13 +244,13 @@ class _AddressMapModalState extends State<AddressMapModal> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? AppTheme.accentMint.withValues(alpha: 0.15)
-                              : const Color(0xFF0C4E55).withValues(alpha: 0.1),
+                              ? AppTheme.accentSky.withValues(alpha: 0.15)
+                              : AppTheme.primaryRoyal.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.person,
-                          color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                          color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
                           size: 20,
                         ),
                       ),
@@ -305,7 +305,7 @@ class _AddressMapModalState extends State<AddressMapModal> {
                     height: 52,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                        backgroundColor: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
                         foregroundColor: isDark ? const Color(0xFF0B0F19) : Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         elevation: 3,

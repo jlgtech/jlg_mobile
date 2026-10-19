@@ -176,7 +176,7 @@ class _StationHistoryViewState extends State<StationHistoryView> {
         label,
         style: TextStyle(
           color: isSelected
-              ? (isDark ? const Color(0xFF042124) : Colors.white)
+              ? (isDark ? const Color(0xFF03162C) : Colors.white)
               : AppTheme.titleColor(context),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           fontSize: 12,
@@ -338,8 +338,8 @@ class _StationHistoryViewState extends State<StationHistoryView> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
-                  side: BorderSide(color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55)),
+                  foregroundColor: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
+                  side: BorderSide(color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal),
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),

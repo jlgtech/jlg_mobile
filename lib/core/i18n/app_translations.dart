@@ -1,7 +1,7 @@
 class AppTranslations {
   static const Map<String, Map<String, String>> _localizedValues = {
     'Français': {
-      'app_title': 'JL Green Aquafresh',
+      'app_title': 'Transport & Logistic',
       'station_title': 'Station Remplissage',
       'queue_title': "File d'attente",
       'history_title': 'Historique',
@@ -40,7 +40,7 @@ class AppTranslations {
       'all': "Tous",
     },
     'Kreyòl': {
-      'app_title': 'JL Green Aquafresh',
+      'app_title': 'Transport & Logistic',
       'station_title': 'Estasyon Ranplisaj',
       'queue_title': "Fil d'atant",
       'history_title': 'Istwa',
@@ -79,7 +79,7 @@ class AppTranslations {
       'all': "Tout",
     },
     'English': {
-      'app_title': 'JL Green Aquafresh',
+      'app_title': 'Transport & Logistic',
       'station_title': 'Filling Station',
       'queue_title': 'Queue',
       'history_title': 'History',
@@ -118,7 +118,7 @@ class AppTranslations {
       'all': 'All',
     },
     'Español': {
-      'app_title': 'JL Green Aquafresh',
+      'app_title': 'Transport & Logistic',
       'station_title': 'Estación de Llenado',
       'queue_title': 'Cola de Espera',
       'history_title': 'Historial',

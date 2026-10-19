@@ -1,5 +1,5 @@
 class AppConfig {
-  static const String appName = "JL Green Aquafresh";
+  static const String appName = "Transport & Logistic";
   static const String appVersion = "1.0.0";
 
   // =========================================================================

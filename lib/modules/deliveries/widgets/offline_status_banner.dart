@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/theme/app_theme.dart';
 import '../providers/delivery_provider.dart';
 
 /// Bannière affichée en haut de la vue des livraisons.
@@ -44,7 +45,7 @@ class OfflineStatusBanner extends StatelessWidget {
           message = "Mode hors ligne${lastSync != null ? " · Sync: ${_formatTime(lastSync)}" : ""}";
           trailing = null;
         } else if (hasPending) {
-          bgColor = Colors.teal.shade700;
+          bgColor = AppTheme.primaryRoyal;
           icon = Icons.cloud_upload;
           message = "Connexion rétablie — Synchronisation automatique...";
           trailing = const SizedBox(

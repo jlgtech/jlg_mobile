@@ -13,6 +13,7 @@ import '../widgets/station_receipt_modal.dart';
 
 import '../../../widgets/overlays/app_drawer.dart';
 import '../../../widgets/layout/app_nav_tab.dart';
+import '../../../widgets/buttons/notification_bell_button.dart';
 
 class StationDashboardView extends StatefulWidget {
   final ValueChanged<AppNavTab>? onSelectTab;
@@ -233,7 +234,7 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                     scaffoldMessenger.showSnackBar(
                       const SnackBar(
                         content: Text("Ticket émis avec succès !"),
-                        backgroundColor: Color(0xFF0C4E55),
+                        backgroundColor: AppTheme.primaryRoyal,
                       ),
                     );
                   } else if (provider.errorMessage != null) {
@@ -264,6 +265,7 @@ class _StationDashboardViewState extends State<StationDashboardView> {
     final stationProvider = Provider.of<StationProvider>(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
     final user = authProvider.currentUser;
+    final isDark = AppTheme.isDark(context);
 
     return Scaffold(
       drawer: AppDrawer(
@@ -280,12 +282,15 @@ class _StationDashboardViewState extends State<StationDashboardView> {
         ),
         title: Text(themeProvider.tr('station_title')),
         actions: [
+          const NotificationBellButton(),
           IconButton(
             icon: const Icon(Icons.refresh),
+            tooltip: "Actualiser la file",
             onPressed: () => stationProvider.fetchQueue(),
           ),
           IconButton(
             icon: const Icon(Icons.logout),
+            tooltip: "Se déconnecter",
             onPressed: () => authProvider.logout(context),
           ),
         ],
@@ -303,14 +308,14 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Color(0xFF0C4E55),
-                      Color(0xFF063C42),
+                      AppTheme.primaryRoyal,
+                      AppTheme.primaryDeep,
                     ],
                   ),
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFF0C4E55).withValues(alpha: 0.25),
+                      color: AppTheme.primaryRoyal.withValues(alpha: 0.25),
                       blurRadius: 12,
                       offset: const Offset(0, 6),
                     ),
@@ -536,8 +541,8 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                                   ),
                                   trailing: ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: isDarkTruck ? AppTheme.accentMint : AppTheme.primaryEmerald,
-                                      foregroundColor: isDarkTruck ? const Color(0xFF042124) : Colors.white,
+                                      backgroundColor: isDarkTruck ? AppTheme.accentSky : AppTheme.primaryRoyal,
+                                      foregroundColor: isDarkTruck ? const Color(0xFF03162C) : Colors.white,
                                       elevation: 0,
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -555,24 +560,24 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                           Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF0FDF4),
+                              color: isDark ? const Color(0xFF0C243B) : const Color(0xFFEFF6FF),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFF86EFAC)),
+                              border: Border.all(color: isDark ? const Color(0xFF0284C7) : const Color(0xFFBAE6FD)),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: [
-                                    const Icon(Icons.help_outline, color: Color(0xFF15803D), size: 22),
+                                    const Icon(Icons.help_outline, color: AppTheme.accentSky, size: 22),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
                                         "Le camion '${_searchController.text.toUpperCase().trim()}' n'existe pas encore.",
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 13.5,
-                                          color: Color(0xFF166534),
+                                          color: AppTheme.titleColor(context),
                                         ),
                                       ),
                                     ),
@@ -581,14 +586,14 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                                 const SizedBox(height: 6),
                                 Text(
                                   "Ce véhicule n'est pas encore enregistré dans le système. Souhaitez-vous l'ajouter pour émettre son ticket d'entrée ?",
-                                  style: TextStyle(fontSize: 12.5, color: Colors.green.shade900),
+                                  style: TextStyle(fontSize: 12.5, color: AppTheme.bodyColor(context)),
                                 ),
                                 const SizedBox(height: 12),
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF0C4E55),
+                                      backgroundColor: AppTheme.primaryRoyal,
                                       foregroundColor: Colors.white,
                                       padding: const EdgeInsets.symmetric(vertical: 12),
                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -794,8 +799,8 @@ class _StationDashboardViewState extends State<StationDashboardView> {
               children: [
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
-                    side: BorderSide(color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55)),
+                    foregroundColor: isDark ? AppTheme.accentMint : AppTheme.primaryRoyal,
+                    side: BorderSide(color: isDark ? AppTheme.accentMint : AppTheme.primaryRoyal),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
@@ -868,7 +873,7 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                         if (ok) {
                           messenger.showSnackBar(const SnackBar(
                             content: Text("Vanne ouverte — Remplissage en cours."),
-                            backgroundColor: Color(0xFF0C4E55),
+                            backgroundColor: AppTheme.primaryRoyal,
                           ));
                         } else if (provider.errorMessage != null) {
                           messenger.showSnackBar(SnackBar(
@@ -898,7 +903,7 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                         if (ok) {
                           messenger.showSnackBar(const SnackBar(
                             content: Text("Remplissage terminé — Ticket validé !"),
-                            backgroundColor: Color(0xFF0C4E55),
+                            backgroundColor: AppTheme.primaryRoyal,
                           ));
                         } else if (provider.errorMessage != null) {
                           messenger.showSnackBar(SnackBar(

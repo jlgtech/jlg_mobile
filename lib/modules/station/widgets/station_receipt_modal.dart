@@ -118,13 +118,13 @@ class StationReceiptModal extends StatelessWidget {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? AppTheme.accentMint.withValues(alpha: 0.15)
-                              : const Color(0xFF0C4E55).withValues(alpha: 0.1),
+                              ? AppTheme.accentSky.withValues(alpha: 0.15)
+                              : AppTheme.primaryRoyal.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
                           Icons.receipt_long,
-                          color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                          color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
                           size: 22,
                         ),
                       ),
@@ -218,7 +218,7 @@ class StationReceiptModal extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w900,
-                                color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                                color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
                                 letterSpacing: 1.1,
                               ),
                             ),
@@ -341,7 +341,7 @@ class StationReceiptModal extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w900,
-                            color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                            color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
                           ),
                         ),
                       ],
@@ -374,15 +374,15 @@ class StationReceiptModal extends StatelessWidget {
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: isDark ? AppTheme.borderColor(context) : const Color(0xFF0C4E55)),
+                        side: BorderSide(color: isDark ? AppTheme.borderColor(context) : AppTheme.primaryRoyal),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(Icons.close, color: isDark ? AppTheme.mutedColor(context) : const Color(0xFF0C4E55)),
+                      icon: Icon(Icons.close, color: isDark ? AppTheme.mutedColor(context) : AppTheme.primaryRoyal),
                       label: Text(
                         "Fermer",
                         style: TextStyle(
-                          color: isDark ? AppTheme.mutedColor(context) : const Color(0xFF0C4E55),
+                          color: isDark ? AppTheme.mutedColor(context) : AppTheme.primaryRoyal,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -392,7 +392,7 @@ class StationReceiptModal extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                        backgroundColor: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
                         foregroundColor: isDark ? const Color(0xFF0B0F19) : Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -402,7 +402,7 @@ class StationReceiptModal extends StatelessWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text("Ticket #${transaction.codeTicket} prêt pour impression thermique."),
-                            backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFF0C4E55),
+                            backgroundColor: isDark ? const Color(0xFF1E293B) : AppTheme.primaryRoyal,
                             duration: const Duration(seconds: 2),
                           ),
                         );
@@ -440,7 +440,7 @@ class StationReceiptModal extends StatelessWidget {
               fontSize: 11.5,
               fontWeight: isBold ? FontWeight.w900 : FontWeight.w600,
               color: isBold
-                  ? (isDark ? AppTheme.accentMint : const Color(0xFF0C4E55))
+                  ? (isDark ? AppTheme.accentSky : AppTheme.primaryRoyal)
                   : AppTheme.titleColor(context),
             ),
           ),

@@ -8,6 +8,7 @@ import 'core/theme/theme_provider.dart';
 import 'modules/deliveries/providers/delivery_provider.dart';
 import 'modules/auth/providers/auth_provider.dart';
 import 'modules/station/providers/station_provider.dart';
+import 'modules/notifications/providers/notification_provider.dart';
 import 'modules/splash/views/splash_view.dart';
 
 Future<void> main() async {
@@ -26,7 +27,7 @@ Future<void> main() async {
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
+      statusBarColor: AppTheme.primaryDeep,
       statusBarIconBrightness: Brightness.light,
       statusBarBrightness: Brightness.dark,
       systemNavigationBarColor: Colors.transparent,
@@ -48,12 +49,13 @@ class JLGMobileApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => StationProvider()),
         ChangeNotifierProvider(create: (_) => DeliveryProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()..startPolling()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return MaterialApp(
-            title: 'JL Green Aquafresh',
+            title: 'Transport & Logistic',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,

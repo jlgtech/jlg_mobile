@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../modules/auth/providers/auth_provider.dart';
+import '../../modules/notifications/providers/notification_provider.dart';
+import '../../modules/notifications/views/notifications_view.dart';
 import '../layout/app_nav_tab.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -39,12 +41,12 @@ class AppDrawer extends StatelessWidget {
                   end: Alignment.bottomRight,
                   colors: isDark
                       ? const [
-                          Color(0xFF0C4E55),
-                          Color(0xFF062326),
+                          Color(0xFF0C2B54),
+                          Color(0xFF06152B),
                         ]
                       : const [
-                          AppTheme.primaryEmerald,
-                          AppTheme.primaryDark,
+                          AppTheme.primaryRoyal,
+                          AppTheme.primaryDeep,
                         ],
                 ),
               ),
@@ -55,6 +57,15 @@ class AppDrawer extends StatelessWidget {
                   child: const Icon(Icons.person, size: 38, color: Colors.white),
                 ),
               ),
+              otherAccountsPictures: [
+                CircleAvatar(
+                  backgroundColor: Colors.white,
+                  child: Padding(
+                    padding: const EdgeInsets.all(5.0),
+                    child: Image.asset('assets/images/logo.png', fit: BoxFit.contain),
+                  ),
+                ),
+              ],
               accountName: Text(
                 user?.nom ?? "Agent Système JLG",
                 style: const TextStyle(
@@ -104,8 +115,8 @@ class AppDrawer extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
-                          foregroundColor: isDark ? const Color(0xFF042124) : Colors.white,
+                          backgroundColor: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
+                          foregroundColor: isDark ? const Color(0xFF03162C) : Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           elevation: 0,
@@ -126,8 +137,8 @@ class AppDrawer extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
-                          foregroundColor: isDark ? const Color(0xFF042124) : Colors.white,
+                          backgroundColor: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
+                          foregroundColor: isDark ? const Color(0xFF03162C) : Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           elevation: 0,
@@ -190,6 +201,88 @@ class AppDrawer extends StatelessWidget {
                       child: Divider(height: 1),
                     ),
                   ],
+
+                  // SECTION ALERTES & NOTIFICATIONS
+                  _buildSectionHeader(context, "ALERTES & NOTIFICATIONS"),
+                  Consumer<NotificationProvider>(
+                    builder: (context, notifProv, _) {
+                      final count = notifProv.unreadCount;
+                      return Semantics(
+                        button: true,
+                        label: "Centre de Notifications, $count non lus",
+                        child: ListTile(
+                          minVerticalPadding: 12,
+                          leading: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Icon(
+                                count > 0 ? Icons.notifications_active_rounded : Icons.notifications_outlined,
+                                color: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
+                                size: 24,
+                              ),
+                              if (count > 0)
+                                Positioned(
+                                  top: -2,
+                                  right: -2,
+                                  child: Container(
+                                    width: 9,
+                                    height: 9,
+                                    decoration: const BoxDecoration(
+                                      color: AppTheme.statusCancelled,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          title: const Text(
+                            "Centre de Notifications",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Text(
+                            count > 0
+                                ? "$count nouvelle${count > 1 ? 's' : ''} alerte${count > 1 ? 's' : ''}"
+                                : "Journal des alertes opérationnelles",
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.mutedColor(context),
+                            ),
+                          ),
+                          trailing: count > 0
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.statusCancelled,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    count > 99 ? "99+" : count.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                )
+                              : null,
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const NotificationsView()),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Divider(height: 1),
+                  ),
 
                   // MODULE CONFIGURATION
                   _buildSectionHeader(context, "CONFIGURATION"),

@@ -7,6 +7,7 @@ import 'delivery_detail_view.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../widgets/overlays/app_drawer.dart';
 import '../../../widgets/layout/app_nav_tab.dart';
+import '../../../widgets/buttons/notification_bell_button.dart';
 import '../../../core/theme/app_theme.dart';
 
 class DeliveryListView extends StatefulWidget {
@@ -57,10 +58,11 @@ class _DeliveryListViewState extends State<DeliveryListView> {
             ),
           ],
         ),
-        backgroundColor: const Color(0xFF0C4E55),
+        backgroundColor: AppTheme.primaryRoyal,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          const NotificationBellButton(color: Colors.white),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: "Actualiser la tournée",
@@ -88,7 +90,7 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                             ? "Livraisons téléchargées — disponibles hors ligne."
                             : "Impossible de mettre à jour le cache.",
                         ),
-                        backgroundColor: ok ? const Color(0xFF0C4E55) : Colors.red.shade700,
+                        backgroundColor: ok ? AppTheme.primaryRoyal : Colors.red.shade700,
                         duration: const Duration(seconds: 3),
                       ));
                     },
@@ -122,8 +124,8 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color(0xFF0C4E55),
-                      Color(0xFF063C42),
+                      AppTheme.primaryRoyal,
+                      AppTheme.primaryDeep,
                     ],
                   ),
                 ),
@@ -147,10 +149,10 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                                   Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                      color: AppTheme.accentSky.withValues(alpha: 0.2),
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(Icons.route, color: Color(0xFF10B981), size: 22),
+                                    child: const Icon(Icons.route, color: AppTheme.accentSky, size: 22),
                                   ),
                                   const SizedBox(width: 12),
                                   Column(
@@ -172,7 +174,7 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981),
+                                  color: AppTheme.accentSky,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
@@ -189,7 +191,7 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                               value: progressRatio,
                               minHeight: 8,
                               backgroundColor: Colors.white.withValues(alpha: 0.2),
-                              color: const Color(0xFF10B981),
+                              color: AppTheme.accentSky,
                             ),
                           ),
                         ],
@@ -219,7 +221,7 @@ class _DeliveryListViewState extends State<DeliveryListView> {
               // Order Cards List
               Expanded(
                 child: provider.isLoading
-                    ? const Center(child: CircularProgressIndicator(color: Color(0xFF0C4E55)))
+                    ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryRoyal))
                     : (orders.isEmpty
                         ? Center(
                             child: Column(
@@ -269,9 +271,9 @@ class _DeliveryListViewState extends State<DeliveryListView> {
   Widget _buildTabButton(BuildContext context, DeliveryProvider provider, String tabKey, String label, IconData icon) {
     final isSelected = provider.activeTab == tabKey;
     final isDark = AppTheme.isDark(context);
-    final activeBg = isDark ? AppTheme.accentMint : const Color(0xFF0C4E55);
+    final activeBg = isDark ? AppTheme.accentMint : AppTheme.primaryRoyal;
     final inactiveBg = isDark ? AppTheme.cardDarkElevated : Colors.grey.shade100;
-    final activeFg = isDark ? const Color(0xFF042124) : Colors.white;
+    final activeFg = isDark ? const Color(0xFF03162C) : Colors.white;
     final inactiveFg = isDark ? AppTheme.textDarkMuted : Colors.grey.shade700;
 
     return Expanded(
@@ -350,7 +352,7 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                     decoration: BoxDecoration(
                       color: isDark
                           ? AppTheme.accentMint.withValues(alpha: 0.15)
-                          : const Color(0xFF0C4E55).withValues(alpha: 0.08),
+                          : AppTheme.primaryRoyal.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -358,7 +360,7 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 13,
-                        color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                        color: isDark ? AppTheme.accentMint : AppTheme.primaryRoyal,
                       ),
                     ),
                   ),
@@ -408,10 +410,10 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                          color: AppTheme.accentSky.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.phone, size: 18, color: Color(0xFF10B981)),
+                        child: const Icon(Icons.phone, size: 18, color: AppTheme.accentSky),
                       ),
                     ),
                 ],
@@ -432,7 +434,7 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.location_on, size: 18, color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55)),
+                    Icon(Icons.location_on, size: 18, color: isDark ? AppTheme.accentMint : AppTheme.primaryRoyal),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -492,7 +494,7 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 16,
-                      color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                      color: isDark ? AppTheme.accentMint : AppTheme.primaryRoyal,
                     ),
                   ),
                 ],
