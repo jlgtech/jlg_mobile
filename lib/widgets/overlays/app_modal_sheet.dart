@@ -13,11 +13,13 @@ class AppModalSheet {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      backgroundColor: AppTheme.surfaceColor(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: AppTheme.borderColor(context), width: 1),
       ),
       builder: (context) {
+        final isDark = AppTheme.isDark(context);
         final mediaQuery = MediaQuery.of(context);
         final keyboardInset = mediaQuery.viewInsets.bottom;
         final systemBottomInset = mediaQuery.padding.bottom;
@@ -46,7 +48,7 @@ class AppModalSheet {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
+                        color: isDark ? const Color(0xFF475569) : Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -61,15 +63,16 @@ class AppModalSheet {
                         child: Row(
                           children: [
                             if (titleIcon != null) ...[
-                              Icon(titleIcon, color: AppTheme.primaryEmerald, size: 22),
+                              Icon(titleIcon, color: AppTheme.brandPrimary(context), size: 22),
                               const SizedBox(width: 8),
                             ],
                             Flexible(
                               child: Text(
                                 title,
                                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      color: AppTheme.primaryEmerald,
+                                      color: AppTheme.titleColor(context),
                                       fontSize: 18,
+                                      fontWeight: FontWeight.w800,
                                     ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -78,7 +81,7 @@ class AppModalSheet {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: AppTheme.textMuted),
+                        icon: Icon(Icons.close, color: AppTheme.mutedColor(context)),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
@@ -109,7 +112,11 @@ class AppModalSheet {
     return showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: AppTheme.surfaceColor(ctx),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: AppTheme.borderColor(ctx), width: 1),
+        ),
         title: Row(
           children: [
             Icon(icon, color: iconColor, size: 24),
@@ -117,16 +124,29 @@ class AppModalSheet {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.titleColor(ctx),
+                ),
               ),
             ),
           ],
         ),
-        content: Text(message, style: const TextStyle(fontSize: 14)),
+        content: Text(
+          message,
+          style: TextStyle(fontSize: 14, color: AppTheme.bodyColor(ctx)),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(confirmText, style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              confirmText,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppTheme.brandPrimary(ctx),
+              ),
+            ),
           ),
         ],
       ),

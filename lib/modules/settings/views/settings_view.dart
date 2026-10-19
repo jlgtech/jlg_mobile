@@ -89,7 +89,8 @@ class _SettingsViewState extends State<SettingsView> {
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: AppTheme.primaryEmerald,
+                  backgroundColor: AppTheme.brandPrimary(context),
+                  foregroundColor: AppTheme.isDark(context) ? const Color(0xFF0B0F19) : Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () {
@@ -218,16 +219,27 @@ class _SettingsViewState extends State<SettingsView> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final isDark = AppTheme.isDark(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
-        color: isSelected ? AppTheme.accentMint.withValues(alpha: 0.1) : Colors.transparent,
+        color: isSelected
+            ? AppTheme.accentMint.withValues(alpha: isDark ? 0.15 : 0.1)
+            : (isDark ? const Color(0xFF1E293B) : Colors.transparent),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isSelected ? AppTheme.accentMint : Colors.grey.shade200),
+        border: Border.all(
+          color: isSelected ? AppTheme.accentMint : AppTheme.borderColor(context),
+        ),
       ),
       child: ListTile(
-        title: Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: AppTheme.titleColor(context),
+          ),
+        ),
+        subtitle: Text(subtitle, style: TextStyle(fontSize: 12, color: AppTheme.mutedColor(context))),
         trailing: isSelected ? const Icon(Icons.check_circle, color: AppTheme.accentMint) : null,
         onTap: onTap,
       ),
@@ -281,6 +293,7 @@ class _SettingsViewState extends State<SettingsView> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final user = authProvider.currentUser;
     final bool isInternal = user?.isInternal ?? true;
+    final bool isDark = AppTheme.isDark(context);
 
     return Scaffold(
       drawer: AppDrawer(
@@ -558,19 +571,30 @@ class _SettingsViewState extends State<SettingsView> {
 
           // LOGOUT CARD BUTTON
           Card(
-            color: Colors.red.shade50,
+            color: isDark ? const Color(0xFF1F1315) : Colors.red.shade50,
+            elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: Colors.red.shade200),
+              side: BorderSide(color: isDark ? const Color(0xFF7F1D1D) : Colors.red.shade200),
             ),
             child: ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text(
+              leading: Icon(Icons.logout, color: isDark ? const Color(0xFFF87171) : Colors.red),
+              title: Text(
                 "Se Déconnecter",
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15),
+                style: TextStyle(
+                  color: isDark ? const Color(0xFFFCA5A5) : Colors.red,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
-              subtitle: const Text("Fermer la session opérateur sur cet appareil", style: TextStyle(fontSize: 12)),
-              trailing: const Icon(Icons.arrow_forward_ios, color: Colors.red, size: 16),
+              subtitle: Text(
+                "Fermer la session opérateur sur cet appareil",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? const Color(0xFFFCA5A5).withValues(alpha: 0.7) : Colors.red.shade700,
+                ),
+              ),
+              trailing: Icon(Icons.arrow_forward_ios, color: isDark ? const Color(0xFFF87171) : Colors.red, size: 16),
               onTap: () => authProvider.logout(context),
             ),
           ),

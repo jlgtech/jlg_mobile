@@ -58,6 +58,7 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final bool isDark = AppTheme.isDark(context);
 
     return Scaffold(
       body: SafeArea(
@@ -71,20 +72,21 @@ class _LoginViewState extends State<LoginView> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryEmerald.withValues(alpha: 0.1),
+                    color: isDark ? AppTheme.accentMint.withValues(alpha: 0.15) : AppTheme.primaryEmerald.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.water_drop_rounded,
                     size: 64,
-                    color: AppTheme.primaryEmerald,
+                    color: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
                   ),
                 ),
                 const SizedBox(height: 24),
                 Text(
                   themeProvider.tr('app_title'),
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: AppTheme.primaryEmerald,
+                        color: isDark ? Colors.white : AppTheme.primaryEmerald,
+                        fontWeight: FontWeight.w900,
                         letterSpacing: -0.5,
                       ),
                   textAlign: TextAlign.center,
@@ -92,14 +94,20 @@ class _LoginViewState extends State<LoginView> {
                 const SizedBox(height: 8),
                 Text(
                   "Portail Opérationnel & Gestion Station",
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 14),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.mutedColor(context),
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 36),
 
                 // Form Card
                 Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(color: AppTheme.borderColor(context)),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: Form(
@@ -109,7 +117,11 @@ class _LoginViewState extends State<LoginView> {
                         children: [
                           Text(
                             themeProvider.tr('login_title'),
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 18),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.titleColor(context),
+                            ),
                           ),
                           const SizedBox(height: 20),
 
@@ -162,15 +174,19 @@ class _LoginViewState extends State<LoginView> {
                             height: 52,
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryEmerald,
+                                backgroundColor: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
+                                foregroundColor: isDark ? const Color(0xFF0B0F19) : Colors.white,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                               ),
                               onPressed: authProvider.isLoading ? null : _submitLogin,
                               child: authProvider.isLoading
-                                  ? const SizedBox(
+                                  ? SizedBox(
                                       width: 24,
                                       height: 24,
-                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                                      child: CircularProgressIndicator(
+                                        color: isDark ? const Color(0xFF0B0F19) : Colors.white,
+                                        strokeWidth: 2.5,
+                                      ),
                                     )
                                   : Text(
                                       themeProvider.tr('login_button'),

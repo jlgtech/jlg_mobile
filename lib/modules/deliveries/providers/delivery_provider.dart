@@ -164,6 +164,16 @@ class DeliveryProvider extends ChangeNotifier {
     String? notesPaiement,
   }) async {
     _errorMessage = null;
+
+    final existing = _orders.where((o) => o.id == orderId).firstOrNull;
+    if (existing != null &&
+        existing.statut != 'EN_COURS_DE_LIVRAISON' &&
+        existing.statut != 'PARTIELLEMENT_LIVREE') {
+      _errorMessage = "Impossible d'encaisser le paiement : la livraison doit d'abord être lancée (statut En cours de livraison).";
+      notifyListeners();
+      return false;
+    }
+
     final result = await DeliveryService.recordPayment(
       orderId,
       modePaiement: modePaiement,

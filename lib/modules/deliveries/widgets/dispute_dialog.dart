@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/delivery_model.dart';
+import '../../../core/theme/app_theme.dart';
 
 class DisputeDialog extends StatefulWidget {
   final DeliveryOrder? order;
@@ -78,11 +79,16 @@ class _DisputeDialogState extends State<DisputeDialog> {
   @override
   Widget build(BuildContext context) {
     final items = widget.order?.items ?? [];
+    final bool isDark = AppTheme.isDark(context);
 
     return AlertDialog(
+      backgroundColor: AppTheme.surfaceColor(context),
       scrollable: false,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: AppTheme.borderColor(context)),
+      ),
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -91,10 +97,11 @@ class _DisputeDialogState extends State<DisputeDialog> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: isDark ? const Color(0xFF450A0A) : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: isDark ? const Color(0xFF7F1D1D) : Colors.transparent),
                 ),
-                child: Icon(Icons.report_problem_outlined, color: Colors.red.shade800, size: 20),
+                child: Icon(Icons.report_problem_outlined, color: isDark ? const Color(0xFFF87171) : Colors.red.shade800, size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -103,7 +110,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
                   style: TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 18,
-                    color: Colors.red.shade900,
+                    color: isDark ? const Color(0xFFFCA5A5) : Colors.red.shade900,
                   ),
                 ),
               ),
@@ -112,10 +119,10 @@ class _DisputeDialogState extends State<DisputeDialog> {
           const SizedBox(height: 6),
           Text(
             '$_displayOrderCode ${widget.order?.clientNom.isNotEmpty == true ? '• ${widget.order!.clientNom}' : ''}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Colors.grey,
+              color: AppTheme.mutedColor(context),
             ),
           ),
         ],
@@ -132,27 +139,28 @@ class _DisputeDialogState extends State<DisputeDialog> {
             children: [
               // 1. Choix du produit / article
               if (items.isNotEmpty) ...[
-                const Text(
+                Text(
                   'Article concerné :',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.titleColor(context)),
                 ),
                 const SizedBox(height: 6),
                 if (items.length > 1)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: AppTheme.borderColor(context)),
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _selectedItem?.articleId ?? items.first.articleId,
                         isExpanded: true,
-                        style: const TextStyle(
+                        dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                          color: AppTheme.titleColor(context),
                         ),
                         items: items.map((item) {
                           return DropdownMenuItem<String>(
@@ -160,6 +168,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
                             child: Text(
                               '${item.designation} (Cmd: ${item.quantiteCommandee})',
                               overflow: TextOverflow.ellipsis,
+                              style: TextStyle(color: AppTheme.titleColor(context)),
                             ),
                           );
                         }).toList(),
@@ -185,9 +194,9 @@ class _DisputeDialogState extends State<DisputeDialog> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: AppTheme.borderColor(context)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -195,19 +204,23 @@ class _DisputeDialogState extends State<DisputeDialog> {
                         Expanded(
                           child: Text(
                             items.first.designation,
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.titleColor(context)),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.blueGrey.shade100,
+                            color: isDark ? const Color(0xFF1E293B) : Colors.blueGrey.shade100,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             'Total cmd: ${items.first.quantiteCommandee}',
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.blueGrey.shade800),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? const Color(0xFF94A3B8) : Colors.blueGrey.shade800,
+                            ),
                           ),
                         ),
                       ],
@@ -220,13 +233,13 @@ class _DisputeDialogState extends State<DisputeDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Quantité défectueuse :',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.titleColor(context)),
                   ),
                   Text(
                     'Max : $_maxQuantity',
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(context), fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -234,16 +247,18 @@ class _DisputeDialogState extends State<DisputeDialog> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50.withValues(alpha: 0.4),
+                  color: isDark ? const Color(0xFF450A0A).withValues(alpha: 0.3) : Colors.red.shade50.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: isDark ? const Color(0xFF7F1D1D) : Colors.red.shade200),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
                       icon: const Icon(Icons.remove_circle_outline),
-                      color: _quantiteDefectueuse > 1 ? Colors.red.shade700 : Colors.grey.shade400,
+                      color: _quantiteDefectueuse > 1
+                          ? (isDark ? const Color(0xFFF87171) : Colors.red.shade700)
+                          : (isDark ? const Color(0xFF475569) : Colors.grey.shade400),
                       onPressed: _quantiteDefectueuse > 1
                           ? () => setState(() => _quantiteDefectueuse--)
                           : null,
@@ -253,12 +268,14 @@ class _DisputeDialogState extends State<DisputeDialog> {
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
-                        color: Colors.red.shade900,
+                        color: isDark ? const Color(0xFFFCA5A5) : Colors.red.shade900,
                       ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.add_circle_outline),
-                      color: _quantiteDefectueuse < _maxQuantity ? Colors.red.shade700 : Colors.grey.shade400,
+                      color: _quantiteDefectueuse < _maxQuantity
+                          ? (isDark ? const Color(0xFFF87171) : Colors.red.shade700)
+                          : (isDark ? const Color(0xFF475569) : Colors.grey.shade400),
                       onPressed: _quantiteDefectueuse < _maxQuantity
                           ? () => setState(() => _quantiteDefectueuse++)
                           : null,
@@ -269,31 +286,32 @@ class _DisputeDialogState extends State<DisputeDialog> {
               const SizedBox(height: 14),
 
               // 3. Motif principal
-              const Text(
+              Text(
                 'Motif principal :',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.titleColor(context)),
               ),
               const SizedBox(height: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(color: AppTheme.borderColor(context)),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _commonReasons.contains(_selectedReason) ? _selectedReason : _commonReasons.first,
                     isExpanded: true,
-                    style: const TextStyle(
+                    dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                      color: AppTheme.titleColor(context),
                     ),
                     items: _commonReasons.map((String reason) {
                       return DropdownMenuItem<String>(
                         value: reason,
-                        child: Text(reason),
+                        child: Text(reason, style: TextStyle(color: AppTheme.titleColor(context))),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -310,10 +328,14 @@ class _DisputeDialogState extends State<DisputeDialog> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: _doitEtreRelivree ? Colors.blue.shade50 : Colors.grey.shade100,
+                  color: _doitEtreRelivree
+                      ? (isDark ? const Color(0xFF0C243B) : Colors.blue.shade50)
+                      : (isDark ? const Color(0xFF0F172A) : Colors.grey.shade100),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: _doitEtreRelivree ? Colors.blue.shade300 : Colors.grey.shade300,
+                    color: _doitEtreRelivree
+                        ? (isDark ? const Color(0xFF0284C7) : Colors.blue.shade300)
+                        : AppTheme.borderColor(context),
                   ),
                 ),
                 child: Column(
@@ -331,7 +353,9 @@ class _DisputeDialogState extends State<DisputeDialog> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w900,
-                                  color: _doitEtreRelivree ? Colors.blue.shade900 : Colors.grey.shade800,
+                                  color: _doitEtreRelivree
+                                      ? (isDark ? const Color(0xFF38BDF8) : Colors.blue.shade900)
+                                      : AppTheme.titleColor(context),
                                 ),
                               ),
                               Text(
@@ -341,7 +365,9 @@ class _DisputeDialogState extends State<DisputeDialog> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
-                                  color: _doitEtreRelivree ? Colors.blue.shade700 : Colors.grey.shade600,
+                                  color: _doitEtreRelivree
+                                      ? (isDark ? const Color(0xFF7DD3FC) : Colors.blue.shade700)
+                                      : AppTheme.mutedColor(context),
                                 ),
                               ),
                             ],
@@ -349,7 +375,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
                         ),
                         Switch(
                           value: _doitEtreRelivree,
-                          activeThumbColor: Colors.blue.shade800,
+                          activeThumbColor: isDark ? const Color(0xFF38BDF8) : Colors.blue.shade800,
                           onChanged: (val) {
                             setState(() => _doitEtreRelivree = val);
                           },
@@ -359,10 +385,10 @@ class _DisputeDialogState extends State<DisputeDialog> {
 
                     // Si Oui : Options de reprogrammation
                     if (_doitEtreRelivree) ...[
-                      const Divider(height: 16),
-                      const Text(
+                      Divider(height: 16, color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade300),
+                      Text(
                         'Mode de prise en charge :',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.titleColor(context)),
                       ),
                       const SizedBox(height: 6),
                       Row(
@@ -375,13 +401,13 @@ class _DisputeDialogState extends State<DisputeDialog> {
                                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                                 decoration: BoxDecoration(
                                   color: _modeRelivraison == 'RELIVRAISON_DEMANDEE'
-                                      ? Colors.blue.shade700
-                                      : Colors.white,
+                                      ? (isDark ? const Color(0xFF0284C7) : Colors.blue.shade700)
+                                      : (isDark ? const Color(0xFF1E293B) : Colors.white),
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
                                     color: _modeRelivraison == 'RELIVRAISON_DEMANDEE'
-                                        ? Colors.blue.shade700
-                                        : Colors.grey.shade300,
+                                        ? (isDark ? const Color(0xFF38BDF8) : Colors.blue.shade700)
+                                        : AppTheme.borderColor(context),
                                   ),
                                 ),
                                 child: Column(
@@ -391,7 +417,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
                                       size: 18,
                                       color: _modeRelivraison == 'RELIVRAISON_DEMANDEE'
                                           ? Colors.white
-                                          : Colors.blue.shade700,
+                                          : (isDark ? const Color(0xFF38BDF8) : Colors.blue.shade700),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
@@ -401,7 +427,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
                                         fontWeight: FontWeight.w800,
                                         color: _modeRelivraison == 'RELIVRAISON_DEMANDEE'
                                             ? Colors.white
-                                            : Colors.black87,
+                                            : AppTheme.titleColor(context),
                                       ),
                                     ),
                                     Text(
@@ -410,7 +436,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
                                         fontSize: 9,
                                         color: _modeRelivraison == 'RELIVRAISON_DEMANDEE'
                                             ? Colors.white70
-                                            : Colors.grey.shade600,
+                                            : AppTheme.mutedColor(context),
                                       ),
                                     ),
                                   ],
@@ -427,13 +453,13 @@ class _DisputeDialogState extends State<DisputeDialog> {
                                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                                 decoration: BoxDecoration(
                                   color: _modeRelivraison == 'NOUVELLE_COMMANDE'
-                                      ? Colors.blue.shade700
-                                      : Colors.white,
+                                      ? (isDark ? const Color(0xFF0284C7) : Colors.blue.shade700)
+                                      : (isDark ? const Color(0xFF1E293B) : Colors.white),
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
                                     color: _modeRelivraison == 'NOUVELLE_COMMANDE'
-                                        ? Colors.blue.shade700
-                                        : Colors.grey.shade300,
+                                        ? (isDark ? const Color(0xFF38BDF8) : Colors.blue.shade700)
+                                        : AppTheme.borderColor(context),
                                   ),
                                 ),
                                 child: Column(
@@ -443,7 +469,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
                                       size: 18,
                                       color: _modeRelivraison == 'NOUVELLE_COMMANDE'
                                           ? Colors.white
-                                          : Colors.blue.shade700,
+                                          : (isDark ? const Color(0xFF38BDF8) : Colors.blue.shade700),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
@@ -453,7 +479,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
                                         fontWeight: FontWeight.w800,
                                         color: _modeRelivraison == 'NOUVELLE_COMMANDE'
                                             ? Colors.white
-                                            : Colors.black87,
+                                            : AppTheme.titleColor(context),
                                       ),
                                     ),
                                     Text(
@@ -462,7 +488,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
                                         fontSize: 9,
                                         color: _modeRelivraison == 'NOUVELLE_COMMANDE'
                                             ? Colors.white70
-                                            : Colors.grey.shade600,
+                                            : AppTheme.mutedColor(context),
                                       ),
                                     ),
                                   ],
@@ -479,23 +505,27 @@ class _DisputeDialogState extends State<DisputeDialog> {
               const SizedBox(height: 14),
 
               // 5. Notes complémentaires optionnelles
-              const Text(
+              Text(
                 'Précisions complémentaires (Optionnel) :',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.titleColor(context)),
               ),
               const SizedBox(height: 6),
               TextField(
                 controller: _motifDetailController,
                 maxLines: 2,
-                style: const TextStyle(fontSize: 13),
+                style: TextStyle(fontSize: 13, color: AppTheme.titleColor(context)),
                 decoration: InputDecoration(
                   hintText: 'Notes sur l\'état du produit ou le constat terrain...',
-                  hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 12),
-                  fillColor: Colors.grey.shade50,
+                  hintStyle: TextStyle(color: AppTheme.mutedColor(context), fontSize: 12),
+                  fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
                   filled: true,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
+                    borderSide: BorderSide(color: AppTheme.borderColor(context)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: AppTheme.borderColor(context)),
                   ),
                 ),
               ),
@@ -506,11 +536,11 @@ class _DisputeDialogState extends State<DisputeDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Annuler', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          child: Text('Annuler', style: TextStyle(color: AppTheme.mutedColor(context), fontWeight: FontWeight.bold)),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red.shade700,
+            backgroundColor: isDark ? const Color(0xFFDC2626) : Colors.red.shade700,
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),

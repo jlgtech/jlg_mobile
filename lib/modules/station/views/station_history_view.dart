@@ -170,18 +170,26 @@ class _StationHistoryViewState extends State<StationHistoryView> {
 
   Widget _buildFilterChip(String value, String label) {
     final isSelected = _selectedFilter == value;
+    final isDark = AppTheme.isDark(context);
     return ChoiceChip(
       label: Text(
         label,
         style: TextStyle(
-          color: isSelected ? Colors.white : AppTheme.textDark,
+          color: isSelected
+              ? (isDark ? const Color(0xFF042124) : Colors.white)
+              : AppTheme.titleColor(context),
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           fontSize: 12,
         ),
       ),
       selected: isSelected,
-      selectedColor: AppTheme.primaryEmerald,
-      backgroundColor: Colors.grey.shade100,
+      selectedColor: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
+      backgroundColor: isDark ? AppTheme.cardDarkElevated : Colors.grey.shade100,
+      side: BorderSide(
+        color: isSelected
+            ? (isDark ? AppTheme.accentMint : AppTheme.primaryEmerald)
+            : (isDark ? AppTheme.borderDark : Colors.transparent),
+      ),
       onSelected: (selected) {
         if (selected) setState(() => _selectedFilter = value);
       },
@@ -189,8 +197,10 @@ class _StationHistoryViewState extends State<StationHistoryView> {
   }
 
   Widget _buildHistoryCard(TransactionStationModel tx, ThemeProvider themeProvider) {
+    final isDark = AppTheme.isDark(context);
     final isTerminee = tx.statut == "TERMINEE";
-    final statusColor = isTerminee ? AppTheme.accentMint : AppTheme.statusCancelled;
+    final statusType = isTerminee ? 'DONE' : 'CANCELLED';
+    final statusColor = AppTheme.badgeText(context, statusType);
     final statusLabel = isTerminee ? themeProvider.tr('completed') : themeProvider.tr('cancelled');
     final statusIcon = isTerminee ? Icons.check_circle_outlined : Icons.cancel_outlined;
 
@@ -211,7 +221,12 @@ class _StationHistoryViewState extends State<StationHistoryView> {
     }
 
     return Card(
+      elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppTheme.borderColor(context), width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -224,12 +239,17 @@ class _StationHistoryViewState extends State<StationHistoryView> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryEmerald.withValues(alpha: 0.1),
+                      color: isDark
+                          ? AppTheme.accentMint.withValues(alpha: 0.15)
+                          : AppTheme.primaryEmerald.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       tx.codeTicket,
-                      style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primaryEmerald),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -239,18 +259,21 @@ class _StationHistoryViewState extends State<StationHistoryView> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.15),
+                      color: AppTheme.badgeBg(context, statusType),
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.badgeBorder(context, statusType)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(statusIcon, color: statusColor, size: 14),
                         const SizedBox(width: 4),
-                        Text(
-                          statusLabel,
-                          style: TextStyle(fontWeight: FontWeight.bold, color: statusColor, fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
+                        Flexible(
+                          child: Text(
+                            statusLabel,
+                            style: TextStyle(fontWeight: FontWeight.bold, color: statusColor, fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
@@ -261,24 +284,32 @@ class _StationHistoryViewState extends State<StationHistoryView> {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Icons.local_shipping_outlined, color: AppTheme.primaryEmerald, size: 20),
+                Icon(Icons.local_shipping_outlined, color: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     tx.camion?.plaqueImmatriculation ?? "Plaque Inconnue",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppTheme.titleColor(context),
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Text(
                   "${tx.montantHtg.toStringAsFixed(2)} HTG",
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppTheme.primaryEmerald),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
+                  ),
                 ),
               ],
             ),
             if (tx.camion?.nomProprietaire != null) ...[
               const SizedBox(height: 4),
-              Text("${themeProvider.tr('driver')}: ${tx.camion!.nomProprietaire}", style: const TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+              Text("${themeProvider.tr('driver')}: ${tx.camion!.nomProprietaire}", style: TextStyle(color: AppTheme.mutedColor(context), fontSize: 13)),
             ],
             const Divider(height: 20),
             Wrap(
@@ -287,17 +318,17 @@ class _StationHistoryViewState extends State<StationHistoryView> {
               spacing: 8,
               runSpacing: 6,
               children: [
-                Text("${themeProvider.tr('entry_time')}: $formattedEntree", style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-                Text("${themeProvider.tr('exit_time')}: $formattedSortie", style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                Text("${themeProvider.tr('entry_time')}: $formattedEntree", style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(context))),
+                Text("${themeProvider.tr('exit_time')}: $formattedSortie", style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(context))),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: AppTheme.badgeBg(context, 'IN_PROGRESS'),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     "${themeProvider.tr('duration')}: $dureeTxt",
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.blue.shade800),
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.badgeText(context, 'IN_PROGRESS')),
                   ),
                 ),
               ],
@@ -307,8 +338,8 @@ class _StationHistoryViewState extends State<StationHistoryView> {
               width: double.infinity,
               child: OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF0C4E55),
-                  side: const BorderSide(color: Color(0xFF0C4E55)),
+                  foregroundColor: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                  side: BorderSide(color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55)),
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),

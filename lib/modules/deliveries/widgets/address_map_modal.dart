@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/delivery_model.dart';
 import '../providers/delivery_provider.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/theme/app_theme.dart';
 
 class AddressMapModal extends StatefulWidget {
   final DeliveryOrder order;
@@ -92,24 +93,34 @@ class _AddressMapModalState extends State<AddressMapModal> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = AppTheme.isDark(context);
+
     return Dialog.fullscreen(
       child: Scaffold(
         appBar: AppBar(
-          title: const Column(
+          title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 "Localisation Première Livraison",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
               ),
               Text(
                 "Déplacez la carte pour caler le repère précis du client",
-                style: TextStyle(fontSize: 11, color: Colors.white70),
+                style: TextStyle(fontSize: 11, color: isDark ? AppTheme.accentMint : Colors.white70),
               ),
             ],
           ),
-          backgroundColor: const Color(0xFF0C4E55),
+          backgroundColor: isDark ? const Color(0xFF111827) : const Color(0xFF0C4E55),
           foregroundColor: Colors.white,
+          elevation: 0,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Container(
+              color: isDark ? const Color(0xFF1E293B) : Colors.transparent,
+              height: 1,
+            ),
+          ),
           actions: [
             IconButton(
               icon: const Icon(Icons.close),
@@ -148,10 +159,10 @@ class _AddressMapModalState extends State<AddressMapModal> {
                             width: 50,
                             height: 50,
                             child: Container(
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF0C4E55),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
                                 shape: BoxShape.circle,
-                                boxShadow: [
+                                boxShadow: const [
                                   BoxShadow(
                                     color: Colors.black26,
                                     blurRadius: 8,
@@ -159,9 +170,9 @@ class _AddressMapModalState extends State<AddressMapModal> {
                                   ),
                                 ],
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.pin_drop,
-                                color: Colors.white,
+                                color: isDark ? const Color(0xFF0B0F19) : Colors.white,
                                 size: 30,
                               ),
                             ),
@@ -178,22 +189,27 @@ class _AddressMapModalState extends State<AddressMapModal> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: AppTheme.surfaceColor(context),
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppTheme.borderColor(context)),
                         boxShadow: const [
                           BoxShadow(color: Colors.black12, blurRadius: 6),
                         ],
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.my_location, size: 16, color: Color(0xFF0C4E55)),
+                          Icon(
+                            Icons.my_location,
+                            size: 16,
+                            color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             "${_currentPosition.latitude.toStringAsFixed(4)}, ${_currentPosition.longitude.toStringAsFixed(4)}",
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF0C4E55),
+                              color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
                             ),
                           ),
                         ],
@@ -208,10 +224,11 @@ class _AddressMapModalState extends State<AddressMapModal> {
             Container(
               padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.surfaceColor(context),
+                border: Border(top: BorderSide(color: AppTheme.borderColor(context))),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
+                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
                     blurRadius: 12,
                     offset: const Offset(0, -4),
                   ),
@@ -226,28 +243,42 @@ class _AddressMapModalState extends State<AddressMapModal> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0C4E55).withValues(alpha: 0.1),
+                          color: isDark
+                              ? AppTheme.accentMint.withValues(alpha: 0.15)
+                              : const Color(0xFF0C4E55).withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.person, color: Color(0xFF0C4E55), size: 20),
+                        child: Icon(
+                          Icons.person,
+                          color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                          size: 20,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           widget.order.clientNom,
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 16,
+                            color: AppTheme.titleColor(context),
+                          ),
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.amber.shade50,
+                          color: isDark ? const Color(0xFF451A03).withValues(alpha: 0.5) : Colors.amber.shade50,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.amber.shade300),
+                          border: Border.all(color: isDark ? const Color(0xFFD97706) : Colors.amber.shade300),
                         ),
-                        child: const Text(
+                        child: Text(
                           "1ère Livraison",
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.amber),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? const Color(0xFFFBBF24) : Colors.amber.shade800,
+                          ),
                         ),
                       ),
                     ],
@@ -257,13 +288,14 @@ class _AddressMapModalState extends State<AddressMapModal> {
                   TextField(
                     controller: _addressController,
                     maxLines: 2,
+                    style: TextStyle(color: AppTheme.titleColor(context), fontSize: 13),
                     decoration: InputDecoration(
                       labelText: "Adresse exacte du point de livraison *",
                       hintText: "Précisez l'adresse, repères visuels (ex: près de l'église...)",
                       prefixIcon: const Icon(Icons.edit_location_alt_outlined),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                       filled: true,
-                      fillColor: Colors.grey.shade50,
+                      fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
                     ),
                   ),
 
@@ -273,15 +305,15 @@ class _AddressMapModalState extends State<AddressMapModal> {
                     height: 52,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0C4E55),
-                        foregroundColor: Colors.white,
+                        backgroundColor: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                        foregroundColor: isDark ? const Color(0xFF0B0F19) : Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         elevation: 3,
                       ),
                       onPressed: _isSaving ? null : _onSaveAddress,
                       icon: const Icon(Icons.check_circle_outline),
                       label: _isSaving
-                          ? const CircularProgressIndicator(color: Colors.white)
+                          ? CircularProgressIndicator(color: isDark ? const Color(0xFF0B0F19) : Colors.white)
                           : const Text(
                               "Confirmer l'Adresse & GPS pour le Client",
                               style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),

@@ -7,6 +7,7 @@ import 'delivery_detail_view.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../widgets/overlays/app_drawer.dart';
 import '../../../widgets/layout/app_nav_tab.dart';
+import '../../../core/theme/app_theme.dart';
 
 class DeliveryListView extends StatefulWidget {
   final ValueChanged<AppNavTab>? onSelectTab;
@@ -267,6 +268,12 @@ class _DeliveryListViewState extends State<DeliveryListView> {
 
   Widget _buildTabButton(BuildContext context, DeliveryProvider provider, String tabKey, String label, IconData icon) {
     final isSelected = provider.activeTab == tabKey;
+    final isDark = AppTheme.isDark(context);
+    final activeBg = isDark ? AppTheme.accentMint : const Color(0xFF0C4E55);
+    final inactiveBg = isDark ? AppTheme.cardDarkElevated : Colors.grey.shade100;
+    final activeFg = isDark ? const Color(0xFF042124) : Colors.white;
+    final inactiveFg = isDark ? AppTheme.textDarkMuted : Colors.grey.shade700;
+
     return Expanded(
       child: Semantics(
         button: true,
@@ -279,20 +286,23 @@ class _DeliveryListViewState extends State<DeliveryListView> {
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF0C4E55) : Colors.grey.shade100,
+              color: isSelected ? activeBg : inactiveBg,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? activeBg : (isDark ? AppTheme.borderDark : Colors.transparent),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 16, color: isSelected ? Colors.white : Colors.grey.shade700),
+                Icon(icon, size: 16, color: isSelected ? activeFg : inactiveFg),
                 const SizedBox(width: 6),
                 Text(
                   label,
                   style: TextStyle(
                     fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
                     fontSize: 12,
-                    color: isSelected ? Colors.white : Colors.grey.shade700,
+                    color: isSelected ? activeFg : inactiveFg,
                   ),
                 ),
               ],
@@ -307,11 +317,17 @@ class _DeliveryListViewState extends State<DeliveryListView> {
     final isDone = order.statut == 'CLOTUREE' || order.statut == 'LIVREE_EN_ATTENTE';
     final isDispute = order.statut == 'EN_ATTENTE_DE_RELIVRAISON';
     final inProgress = order.statut == 'EN_COURS_DE_LIVRAISON';
+    final isDark = AppTheme.isDark(context);
+
+    final statusKey = isDone ? 'DONE' : (isDispute ? 'DISPUTE' : (inProgress ? 'IN_PROGRESS' : 'PENDING'));
 
     return Card(
-      elevation: 2,
+      elevation: 0,
       margin: const EdgeInsets.only(bottom: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: AppTheme.borderColor(context), width: 1),
+      ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: () {
@@ -332,25 +348,27 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0C4E55).withValues(alpha: 0.08),
+                      color: isDark
+                          ? AppTheme.accentMint.withValues(alpha: 0.15)
+                          : const Color(0xFF0C4E55).withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       order.code,
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF0C4E55)),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                      ),
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: isDone
-                          ? Colors.teal.shade50
-                          : (isDispute ? Colors.red.shade50 : (inProgress ? Colors.blue.shade50 : Colors.amber.shade50)),
+                      color: AppTheme.badgeBg(context, statusKey),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: isDone
-                            ? Colors.teal.shade200
-                            : (isDispute ? Colors.red.shade200 : (inProgress ? Colors.blue.shade200 : Colors.amber.shade300)),
+                        color: AppTheme.badgeBorder(context, statusKey),
                       ),
                     ),
                     child: Text(
@@ -358,9 +376,7 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w900,
-                        color: isDone
-                            ? Colors.teal.shade800
-                            : (isDispute ? Colors.red.shade900 : (inProgress ? Colors.blue.shade900 : Colors.amber.shade900)),
+                        color: AppTheme.badgeText(context, statusKey),
                       ),
                     ),
                   ),
@@ -376,7 +392,11 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                   Expanded(
                     child: Text(
                       order.clientNom,
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A)),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        color: AppTheme.titleColor(context),
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -388,7 +408,7 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                          color: const Color(0xFF10B981).withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(Icons.phone, size: 18, color: Color(0xFF10B981)),
@@ -403,19 +423,25 @@ class _DeliveryListViewState extends State<DeliveryListView> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: isDark ? AppTheme.cardDarkSubtle : Colors.grey.shade50,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(
+                    color: isDark ? AppTheme.borderDark : Colors.grey.shade200,
+                  ),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.location_on, size: 18, color: Color(0xFF0C4E55)),
+                    Icon(Icons.location_on, size: 18, color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         order.adresseLivraison,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade800),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? AppTheme.textDarkBody : Colors.grey.shade800,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -435,10 +461,10 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: order.estPayee ? Colors.teal.shade50 : Colors.amber.shade50,
+                          color: AppTheme.badgeBg(context, order.estPayee ? 'DONE' : 'PENDING'),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: order.estPayee ? Colors.teal.shade200 : Colors.amber.shade300,
+                            color: AppTheme.badgeBorder(context, order.estPayee ? 'DONE' : 'PENDING'),
                           ),
                         ),
                         child: Text(
@@ -446,20 +472,28 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: order.estPayee ? Colors.teal.shade800 : Colors.amber.shade900,
+                            color: AppTheme.badgeText(context, order.estPayee ? 'DONE' : 'PENDING'),
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         order.modePaiement,
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.mutedColor(context),
+                        ),
                       ),
                     ],
                   ),
                   Text(
                     '${order.montantTotal.toStringAsFixed(2)} HTG',
-                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0C4E55)),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                    ),
                   ),
                 ],
               ),

@@ -426,14 +426,18 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                Text(
                                   "Entrée Camion — Contrôle de la Plaque",
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.primaryEmerald),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                    color: AppTheme.brandPrimary(context),
+                                  ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   "Tapez la plaque d'immatriculation pour émettre un ticket ou ajouter un camion",
-                                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                  style: TextStyle(fontSize: 12, color: AppTheme.mutedColor(context)),
                                 ),
                               ],
                             ),
@@ -494,41 +498,57 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                           ),
                           const SizedBox(height: 8),
                           ..._searchResults.map(
-                            (truck) => Card(
-                              elevation: 0,
-                              color: AppTheme.accentMint.withValues(alpha: 0.08),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(color: AppTheme.primaryEmerald.withValues(alpha: 0.25)),
-                              ),
-                              margin: const EdgeInsets.only(bottom: 8),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: AppTheme.primaryEmerald.withValues(alpha: 0.15),
-                                  child: const Icon(Icons.local_shipping, color: AppTheme.primaryEmerald, size: 20),
-                                ),
-                                title: Text(
-                                  truck.plaqueImmatriculation,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.8),
-                                ),
-                                subtitle: Text(
-                                  "Chauffeur: ${truck.nomProprietaire ?? 'Non renseigné'}${truck.telephone != null ? ' • ${truck.telephone}' : ''}",
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                                trailing: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppTheme.primaryEmerald,
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            (truck) {
+                              final isDarkTruck = AppTheme.isDark(context);
+                              return Card(
+                                elevation: 0,
+                                color: isDarkTruck ? AppTheme.cardDarkElevated : AppTheme.accentMint.withValues(alpha: 0.08),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: isDarkTruck ? AppTheme.borderDark : AppTheme.primaryEmerald.withValues(alpha: 0.25),
                                   ),
-                                  onPressed: () => _openTicketModalForTruck(truck),
-                                  icon: const Icon(Icons.confirmation_number_outlined, size: 16),
-                                  label: const Text("Émettre Ticket", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                                 ),
-                              ),
-                            ),
+                                margin: const EdgeInsets.only(bottom: 8),
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: isDarkTruck
+                                        ? AppTheme.accentMint.withValues(alpha: 0.15)
+                                        : AppTheme.primaryEmerald.withValues(alpha: 0.15),
+                                    child: Icon(
+                                      Icons.local_shipping,
+                                      color: isDarkTruck ? AppTheme.accentMint : AppTheme.primaryEmerald,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  title: Text(
+                                    truck.plaqueImmatriculation,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      letterSpacing: 0.8,
+                                      color: AppTheme.titleColor(context),
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    "Chauffeur: ${truck.nomProprietaire ?? 'Non renseigné'}${truck.telephone != null ? ' • ${truck.telephone}' : ''}",
+                                    style: TextStyle(fontSize: 13, color: AppTheme.mutedColor(context)),
+                                  ),
+                                  trailing: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: isDarkTruck ? AppTheme.accentMint : AppTheme.primaryEmerald,
+                                      foregroundColor: isDarkTruck ? const Color(0xFF042124) : Colors.white,
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    onPressed: () => _openTicketModalForTruck(truck),
+                                    icon: const Icon(Icons.confirmation_number_outlined, size: 16),
+                                    label: const Text("Émettre Ticket", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ] else ...[
                           // PROMPT TO ADD UNKNOWN TRUCK
@@ -655,15 +675,22 @@ class _StationDashboardViewState extends State<StationDashboardView> {
   }
 
   Widget _buildTransactionCard(TransactionStationModel tx) {
+    final isDark = AppTheme.isDark(context);
     final bool isEnCours = tx.statut == "EN_COURS";
-    final Color statusColor = isEnCours ? AppTheme.accentMint : AppTheme.statusPending;
+    final String statusKey = isEnCours ? 'ACTIVE' : 'PENDING';
+    final Color statusColor = AppTheme.badgeText(context, statusKey);
     final String statusLabel = isEnCours ? "Remplissage en cours" : "En attente";
     final IconData statusIcon = isEnCours ? Icons.water_drop_rounded : Icons.hourglass_top_rounded;
 
     final formattedTime = DateFormat('HH:mm').format(tx.heureEntree.toLocal());
 
     return Card(
+      elevation: 0,
       margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppTheme.borderColor(context), width: 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -676,12 +703,17 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryEmerald.withValues(alpha: 0.1),
+                      color: isDark
+                          ? AppTheme.accentMint.withValues(alpha: 0.15)
+                          : AppTheme.primaryEmerald.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       tx.codeTicket,
-                      style: const TextStyle(fontWeight: FontWeight.w800, color: AppTheme.primaryEmerald),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -691,8 +723,9 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.15),
+                      color: AppTheme.badgeBg(context, statusKey),
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.badgeBorder(context, statusKey)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -715,12 +748,16 @@ class _StationDashboardViewState extends State<StationDashboardView> {
             const SizedBox(height: 12),
             Row(
               children: [
-                const Icon(Icons.local_shipping, color: AppTheme.primaryEmerald, size: 20),
+                Icon(Icons.local_shipping, color: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     tx.camion?.plaqueImmatriculation ?? "Plaque Inconnue",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppTheme.titleColor(context),
+                    ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -728,7 +765,7 @@ class _StationDashboardViewState extends State<StationDashboardView> {
             ),
             if (tx.camion?.nomProprietaire != null) ...[
               const SizedBox(height: 4),
-              Text("Chauffeur: ${tx.camion!.nomProprietaire}", style: const TextStyle(color: AppTheme.textMuted)),
+              Text("Chauffeur: ${tx.camion!.nomProprietaire}", style: TextStyle(color: AppTheme.mutedColor(context))),
             ],
             const SizedBox(height: 8),
             Row(
@@ -737,14 +774,18 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                 Flexible(
                   child: Text(
                     "Heure d'entrée: $formattedTime",
-                    style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                    style: TextStyle(fontSize: 12, color: AppTheme.mutedColor(context)),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   "${tx.montantHtg.toStringAsFixed(2)} HTG",
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: isDark ? AppTheme.accentMint : AppTheme.titleColor(context),
+                  ),
                 ),
               ],
             ),
@@ -753,8 +794,8 @@ class _StationDashboardViewState extends State<StationDashboardView> {
               children: [
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF0C4E55),
-                    side: const BorderSide(color: Color(0xFF0C4E55)),
+                    foregroundColor: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                    side: BorderSide(color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55)),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),

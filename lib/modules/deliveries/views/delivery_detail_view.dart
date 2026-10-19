@@ -5,6 +5,7 @@ import '../providers/delivery_provider.dart';
 import '../widgets/dispute_dialog.dart';
 import '../widgets/address_map_modal.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/theme/app_theme.dart';
 
 class DeliveryDetailView extends StatefulWidget {
   final DeliveryOrder order;
@@ -75,6 +76,16 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
   }
 
   void _openPaymentModal() {
+    final inProgress = widget.order.statut == 'EN_COURS_DE_LIVRAISON' || widget.order.statut == 'PARTIELLEMENT_LIVREE';
+    if (!inProgress) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Vous devez d'abord démarrer la livraison vers ce client avant de pouvoir encaisser."),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
     String selectedMode = widget.order.modePaiement;
     final notesController = TextEditingController();
 
@@ -85,12 +96,16 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
+          final isDarkModal = AppTheme.isDark(ctx);
           return SafeArea(
             top: false,
             child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceColor(ctx),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                border: Border(
+                  top: BorderSide(color: AppTheme.borderColor(ctx), width: 1),
+                ),
               ),
               padding: EdgeInsets.only(
                 top: 16,
@@ -108,7 +123,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                     width: 44,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
+                      color: isDarkModal ? const Color(0xFF475569) : Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
@@ -119,23 +134,33 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.teal.shade50,
+                        color: isDarkModal
+                            ? AppTheme.accentMint.withValues(alpha: 0.15)
+                            : Colors.teal.shade50,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.point_of_sale, color: Color(0xFF0C4E55), size: 24),
+                      child: Icon(
+                        Icons.point_of_sale,
+                        color: isDarkModal ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             "Encaisser le Paiement",
-                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0C4E55)),
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                              color: AppTheme.titleColor(ctx),
+                            ),
                           ),
                           Text(
                             "Règlement de la commande à la livraison",
-                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                            style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(ctx)),
                           ),
                         ],
                       ),
@@ -146,17 +171,30 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+                    color: isDarkModal ? AppTheme.cardDarkSubtle : Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(
+                      color: isDarkModal ? AppTheme.borderDark : Colors.grey.shade200,
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Montant à Encaisser :", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      Text(
+                        "Montant à Encaisser :",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: AppTheme.titleColor(ctx),
+                        ),
+                      ),
                       Text(
                         "${widget.order.montantTotal.toStringAsFixed(2)} HTG",
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: Color(0xFF0C4E55)),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 17,
+                          color: isDarkModal ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                        ),
                       ),
                     ],
                   ),
@@ -195,8 +233,8 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0C4E55),
-                    foregroundColor: Colors.white,
+                    backgroundColor: isDarkModal ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                    foregroundColor: isDarkModal ? const Color(0xFF042124) : Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -304,6 +342,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     final isDone = order.statut == 'CLOTUREE' || order.statut == 'LIVREE_EN_ATTENTE';
     final isDispute = order.statut == 'EN_ATTENTE_DE_RELIVRAISON';
     final inProgress = order.statut == 'EN_COURS_DE_LIVRAISON';
+    final bool isDark = AppTheme.isDark(context);
 
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
@@ -395,27 +434,27 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Informations Destinataire',
                           style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 14,
-                            color: Color(0xFF0C4E55),
+                            color: AppTheme.brandPrimary(context),
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
+                            color: AppTheme.badgeBg(context, 'IN_PROGRESS'),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue.shade200),
+                            border: Border.all(color: AppTheme.badgeBorder(context, 'IN_PROGRESS')),
                           ),
-                          child: const Text(
+                          child: Text(
                             "1ère Livraison",
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF0C4E55),
+                              color: AppTheme.badgeText(context, 'IN_PROGRESS'),
                             ),
                           ),
                         ),
@@ -424,27 +463,33 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                     const Divider(height: 20),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const CircleAvatar(
-                        backgroundColor: Color(0xFFE6F4F1),
-                        child: Icon(Icons.person, color: Color(0xFF0C4E55)),
+                      leading: CircleAvatar(
+                        backgroundColor: isDark
+                            ? AppTheme.accentMint.withValues(alpha: 0.15)
+                            : const Color(0xFFE6F4F1),
+                        child: Icon(Icons.person, color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55)),
                       ),
                       title: Text(
                         order.clientNom,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppTheme.titleColor(context),
+                        ),
                       ),
                       subtitle: Text(
                         order.clientTel.isEmpty ? 'Téléphone non renseigné' : order.clientTel,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        style: TextStyle(color: AppTheme.mutedColor(context), fontSize: 12),
                       ),
                       trailing: order.clientTel.isNotEmpty
                           ? IconButton(
-                              icon: const Icon(Icons.phone, color: Color(0xFF0C4E55)),
+                              icon: Icon(Icons.phone, color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55)),
                               tooltip: "Appeler le client",
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text("Numéro du destinataire : ${order.clientTel}"),
-                                    backgroundColor: const Color(0xFF0C4E55),
+                                    backgroundColor: isDark ? AppTheme.cardDarkElevated : const Color(0xFF0C4E55),
                                     duration: const Duration(seconds: 3),
                                   ),
                                 );
@@ -456,7 +501,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.location_on_outlined, color: Colors.grey, size: 20),
+                        Icon(Icons.location_on_outlined, color: isDark ? AppTheme.accentMint : Colors.grey, size: 20),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(
@@ -464,14 +509,18 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                             children: [
                               Text(
                                 order.adresseLivraison,
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.titleColor(context),
+                                ),
                               ),
                               if (order.latitude != null && order.longitude != null)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 2),
                                   child: Text(
                                     "GPS : ${order.latitude!.toStringAsFixed(4)}, ${order.longitude!.toStringAsFixed(4)} (Confirmé)",
-                                    style: TextStyle(fontSize: 11, color: Colors.teal.shade700, fontWeight: FontWeight.bold),
+                                    style: TextStyle(fontSize: 11, color: isDark ? AppTheme.accentMint : Colors.teal.shade700, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                             ],
@@ -485,10 +534,10 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: order.estPayee ? Colors.teal.shade50 : Colors.amber.shade50,
+                        color: AppTheme.badgeBg(context, order.estPayee ? 'DONE' : 'PENDING'),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: order.estPayee ? Colors.teal.shade300 : Colors.amber.shade400,
+                          color: AppTheme.badgeBorder(context, order.estPayee ? 'DONE' : 'PENDING'),
                         ),
                       ),
                       child: Row(
@@ -496,7 +545,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                           Icon(
                             order.estPayee ? Icons.check_circle : Icons.pending_outlined,
                             size: 18,
-                            color: order.estPayee ? Colors.teal.shade700 : Colors.amber.shade900,
+                            color: AppTheme.badgeText(context, order.estPayee ? 'DONE' : 'PENDING'),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -508,7 +557,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w900,
-                                    color: order.estPayee ? Colors.teal.shade900 : Colors.amber.shade900,
+                                    color: AppTheme.badgeText(context, order.estPayee ? 'DONE' : 'PENDING'),
                                     letterSpacing: 0.5,
                                   ),
                                 ),
@@ -519,7 +568,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                                       : "Montant à percevoir : ${order.montantTotal.toStringAsFixed(2)} HTG (${order.modePaiement})",
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: order.estPayee ? Colors.teal.shade800 : Colors.brown.shade800,
+                                    color: AppTheme.badgeText(context, order.estPayee ? 'DONE' : 'PENDING'),
                                   ),
                                 ),
                               ],
@@ -657,8 +706,8 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
 
             // Action Buttons
             if (!isDone && !isDispute) ...[
-              // Bouton d'encaissement si non payée
-              if (!order.estPayee) ...[
+              // Bouton d'encaissement si non payée : débloqué uniquement si la livraison est déjà lancée
+              if (!order.estPayee && inProgress) ...[
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -675,6 +724,36 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                       elevation: 2,
                     ),
                     onPressed: _isProcessing ? null : _openPaymentModal,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Notice d'information lorsque la tournée n'est pas encore lancée
+              if (!order.estPayee && !inProgress) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.badgeBg(context, 'PENDING'),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.badgeBorder(context, 'PENDING')),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: AppTheme.badgeText(context, 'PENDING'), size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          "Paiement à percevoir à la livraison (${order.montantTotal.toStringAsFixed(2)} HTG). Démarrez la tournée pour débloquer l'encaissement.",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.badgeText(context, 'PENDING'),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 12),

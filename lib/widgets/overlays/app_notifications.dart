@@ -55,6 +55,7 @@ class AppNotifications {
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: accentColor.withValues(alpha: 0.3), width: 1),
             boxShadow: [
               BoxShadow(
                 color: backgroundColor.withValues(alpha: 0.35),

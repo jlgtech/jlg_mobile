@@ -22,7 +22,10 @@ class AppDrawer extends StatelessWidget {
     final canAccessStation = user == null || user.isExecutive || user.isStationStaffOnly;
     final canAccessDeliveries = user == null || user.isExecutive || user.isLivreurOnly;
 
+    final isDark = AppTheme.isDark(context);
+
     return Drawer(
+      backgroundColor: AppTheme.surfaceColor(context),
       child: SafeArea(
         top: false,
         child: Column(
@@ -30,14 +33,19 @@ class AppDrawer extends StatelessWidget {
             // Drawer Header with AAA High Contrast
             UserAccountsDrawerHeader(
               margin: EdgeInsets.zero,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    AppTheme.primaryEmerald,
-                    AppTheme.primaryDark,
-                  ],
+                  colors: isDark
+                      ? const [
+                          Color(0xFF0C4E55),
+                          Color(0xFF062326),
+                        ]
+                      : const [
+                          AppTheme.primaryEmerald,
+                          AppTheme.primaryDark,
+                        ],
                 ),
               ),
               currentAccountPicture: Semantics(
@@ -90,17 +98,17 @@ class AppDrawer extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 children: [
                   // SECTION RACCOURCIS D'ACTION RAPIDE
-                  _buildSectionHeader("RACCOURCIS D'ACTION RAPIDE"),
+                  _buildSectionHeader(context, "RACCOURCIS D'ACTION RAPIDE"),
                   if (canAccessStation)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryEmerald,
-                          foregroundColor: Colors.white,
+                          backgroundColor: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
+                          foregroundColor: isDark ? const Color(0xFF042124) : Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          elevation: 2,
+                          elevation: 0,
                         ),
                         icon: const Icon(Icons.add_circle_outline, size: 20),
                         label: const Text(
@@ -118,11 +126,11 @@ class AppDrawer extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                       child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryEmerald,
-                          foregroundColor: Colors.white,
+                          backgroundColor: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
+                          foregroundColor: isDark ? const Color(0xFF042124) : Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          elevation: 2,
+                          elevation: 0,
                         ),
                         icon: const Icon(Icons.route_outlined, size: 20),
                         label: const Text(
@@ -143,7 +151,7 @@ class AppDrawer extends StatelessWidget {
 
                   // MODULES EXPLOITATION STATION
                   if (canAccessStation) ...[
-                    _buildSectionHeader("EXPLOITATION STATION"),
+                    _buildSectionHeader(context, "EXPLOITATION STATION"),
                     _buildDrawerTile(
                       context: context,
                       tab: AppNavTab.station,
@@ -168,7 +176,7 @@ class AppDrawer extends StatelessWidget {
 
                   // MODULES LOGISTIQUE & LIVRAISONS
                   if (canAccessDeliveries) ...[
-                    _buildSectionHeader("LOGISTIQUE & LIVRAISONS"),
+                    _buildSectionHeader(context, "LOGISTIQUE & LIVRAISONS"),
                     _buildDrawerTile(
                       context: context,
                       tab: AppNavTab.deliveries,
@@ -184,7 +192,7 @@ class AppDrawer extends StatelessWidget {
                   ],
 
                   // MODULE CONFIGURATION
-                  _buildSectionHeader("CONFIGURATION"),
+                  _buildSectionHeader(context, "CONFIGURATION"),
                   _buildDrawerTile(
                     context: context,
                     tab: AppNavTab.settings,
@@ -226,15 +234,15 @@ class AppDrawer extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(BuildContext context, String title) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w900,
-          color: AppTheme.primaryEmerald,
+          color: AppTheme.brandPrimary(context),
           letterSpacing: 1.2,
         ),
       ),
@@ -250,17 +258,23 @@ class AppDrawer extends StatelessWidget {
     required String subtitle,
   }) {
     final isSelected = selectedTab == tab;
+    final isDark = AppTheme.isDark(context);
+    final activeColor = isDark ? AppTheme.accentMint : AppTheme.primaryEmerald;
+    final inactiveTitleColor = AppTheme.titleColor(context);
+
     return Semantics(
       button: true,
       selected: isSelected,
       label: "$title - $subtitle",
       child: ListTile(
         selected: isSelected,
-        selectedTileColor: AppTheme.primaryEmerald.withValues(alpha: 0.1),
+        selectedTileColor: isDark
+            ? AppTheme.accentMint.withValues(alpha: 0.15)
+            : AppTheme.primaryEmerald.withValues(alpha: 0.1),
         minVerticalPadding: 12,
         leading: Icon(
           isSelected ? selectedIcon : icon,
-          color: isSelected ? AppTheme.primaryEmerald : AppTheme.textDark,
+          color: isSelected ? activeColor : inactiveTitleColor,
           size: 24,
         ),
         title: Text(
@@ -268,14 +282,14 @@ class AppDrawer extends StatelessWidget {
           style: TextStyle(
             fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
             fontSize: 14,
-            color: isSelected ? AppTheme.primaryEmerald : AppTheme.textDark,
+            color: isSelected ? activeColor : inactiveTitleColor,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            color: AppTheme.textMuted,
+            color: AppTheme.mutedColor(context),
           ),
         ),
         onTap: () {

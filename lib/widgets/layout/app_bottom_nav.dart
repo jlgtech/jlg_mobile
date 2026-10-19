@@ -26,13 +26,18 @@ class AppBottomNav extends StatelessWidget {
 
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
+    final isDark = AppTheme.isDark(context);
+
     return Container(
       padding: EdgeInsets.only(bottom: bottomInset > 0 ? bottomInset / 2 : 0),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: AppTheme.surfaceColor(context),
+        border: Border(
+          top: BorderSide(color: AppTheme.borderColor(context), width: 1),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),
@@ -47,9 +52,9 @@ class AppBottomNav extends StatelessWidget {
               onSelectTab(visibleTabs[index]);
             }
           },
-          backgroundColor: Theme.of(context).cardColor,
-          selectedItemColor: AppTheme.primaryEmerald,
-          unselectedItemColor: AppTheme.textMuted,
+          backgroundColor: AppTheme.surfaceColor(context),
+          selectedItemColor: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
+          unselectedItemColor: AppTheme.mutedColor(context),
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
           elevation: 0,
