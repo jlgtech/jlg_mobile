@@ -150,7 +150,7 @@ class _AddressMapModalState extends State<AddressMapModal> {
                     children: [
                       TileLayer(
                         urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'com.jlgreen.jlg_mobile',
+                        userAgentPackageName: 'com.transportlogistic.transportlogistic',
                       ),
                       MarkerLayer(
                         markers: [

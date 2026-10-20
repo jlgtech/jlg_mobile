@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "655194794898",
+    "project_id": "transport-et-logistic",
+    "storage_bucket": "transport-et-logistic.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:655194794898:android:f16101052c3b6ff4a92f4b",
+        "android_client_info": {
+          "package_name": "com.transportlogistic.transportlogistic"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAk8jt13LNTGjlxbOtvCZ5Ex_-Uwia10_s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

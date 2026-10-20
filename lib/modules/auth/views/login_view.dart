@@ -7,6 +7,7 @@ import '../../../widgets/overlays/app_notifications.dart';
 import '../../deliveries/views/delivery_list_view.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../providers/auth_provider.dart';
+import 'force_change_password_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -40,7 +41,15 @@ class _LoginViewState extends State<LoginView> {
       if (success) {
         Provider.of<NotificationProvider>(context, listen: false).fetchNotifications();
         AppNotifications.showSuccess(context, "Connexion réussie !");
-        final userRole = authProvider.currentUser?.role;
+        final user = authProvider.currentUser;
+        if (user != null && user.doitChangerMotDePasse) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const ForceChangePasswordView()),
+          );
+          return;
+        }
+
+        final userRole = user?.role;
         if (userRole == 'LIVREUR' || userRole == 'CHAUFFEUR') {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (context) => const DeliveryListView()),

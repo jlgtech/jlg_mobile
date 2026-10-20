@@ -4,6 +4,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../widgets/layout/app_shell.dart';
 import '../../auth/views/login_view.dart';
+import '../../auth/views/force_change_password_view.dart';
+import '../../deliveries/views/delivery_list_view.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -58,6 +60,20 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
 
     final isAuthenticated = results[1] as bool;
 
+    final user = authProvider.currentUser;
+    Widget destination;
+    if (isAuthenticated) {
+      if (user != null && user.doitChangerMotDePasse) {
+        destination = const ForceChangePasswordView();
+      } else if (user != null && (user.role == 'LIVREUR' || user.role == 'CHAUFFEUR')) {
+        destination = const DeliveryListView();
+      } else {
+        destination = const AppShell();
+      }
+    } else {
+      destination = const LoginView();
+    }
+
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
@@ -65,7 +81,7 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
         pageBuilder: (context, animation, secondaryAnimation) {
           return FadeTransition(
             opacity: animation,
-            child: isAuthenticated ? const AppShell() : const LoginView(),
+            child: destination,
           );
         },
       ),
