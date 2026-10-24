@@ -136,21 +136,21 @@ class AppTheme {
       error: statusCancelled,
       outline: borderLight,
     ),
-    textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.light().textTheme).copyWith(
-      headlineLarge: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: textNight, letterSpacing: -0.5),
-      headlineMedium: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: textNight, letterSpacing: -0.3),
-      titleLarge: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: textNight),
-      titleMedium: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: textNight),
-      bodyLarge: GoogleFonts.plusJakartaSans(color: textNight, fontWeight: FontWeight.w500),
-      bodyMedium: GoogleFonts.plusJakartaSans(color: textBody),
-      bodySmall: GoogleFonts.plusJakartaSans(color: textMuted),
+    textTheme: GoogleFonts.sourceSans3TextTheme(ThemeData.light().textTheme).copyWith(
+      headlineLarge: GoogleFonts.montserrat(fontWeight: FontWeight.w900, color: textNight, letterSpacing: -0.5),
+      headlineMedium: GoogleFonts.montserrat(fontWeight: FontWeight.w800, color: textNight, letterSpacing: -0.3),
+      titleLarge: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: textNight),
+      titleMedium: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: textNight),
+      bodyLarge: GoogleFonts.sourceSans3(color: textNight, fontWeight: FontWeight.w500),
+      bodyMedium: GoogleFonts.sourceSans3(color: textBody),
+      bodySmall: GoogleFonts.sourceSans3(color: textMuted),
     ),
     appBarTheme: AppBarTheme(
       backgroundColor: primaryRoyal,
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
-      titleTextStyle: GoogleFonts.plusJakartaSans(
+      titleTextStyle: GoogleFonts.montserrat(
         fontSize: 18,
         fontWeight: FontWeight.bold,
         color: Colors.white,
@@ -173,7 +173,7 @@ class AppTheme {
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold),
+        textStyle: GoogleFonts.sourceSans3(fontSize: 15, fontWeight: FontWeight.bold),
         elevation: 1,
       ).copyWith(
         overlayColor: WidgetStateProperty.resolveWith(
@@ -187,13 +187,13 @@ class AppTheme {
         side: const BorderSide(color: primaryRoyal, width: 1.5),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
+        textStyle: GoogleFonts.sourceSans3(fontSize: 14, fontWeight: FontWeight.w700),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: primaryRoyal,
-        textStyle: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
+        textStyle: GoogleFonts.sourceSans3(fontSize: 14, fontWeight: FontWeight.w700),
       ),
     ),
     cardTheme: CardThemeData(
@@ -231,8 +231,8 @@ class AppTheme {
       backgroundColor: cardLight,
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      titleTextStyle: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, color: textNight),
-      contentTextStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: textBody),
+      titleTextStyle: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w800, color: textNight),
+      contentTextStyle: GoogleFonts.sourceSans3(fontSize: 14, color: textBody),
     ),
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: cardLight,
@@ -245,7 +245,7 @@ class AppTheme {
       backgroundColor: cardLightSubtle,
       selectedColor: accentSky.withValues(alpha: 0.18),
       side: const BorderSide(color: borderLight),
-      labelStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: textNight),
+      labelStyle: GoogleFonts.sourceSans3(fontSize: 12, color: textNight),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(color: accentSky),
@@ -275,21 +275,21 @@ class AppTheme {
       outline: borderDarkSubtle,
       onSurface: textDarkTitle,
     ),
-    textTheme: GoogleFonts.plusJakartaSansTextTheme(ThemeData.dark().textTheme).copyWith(
-      headlineLarge: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, color: textDarkTitle, letterSpacing: -0.5),
-      headlineMedium: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, color: textDarkTitle, letterSpacing: -0.3),
-      titleLarge: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: textDarkTitle),
-      titleMedium: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700, color: textDarkTitle),
-      bodyLarge: GoogleFonts.plusJakartaSans(color: textDarkTitle, fontWeight: FontWeight.w500),
-      bodyMedium: GoogleFonts.plusJakartaSans(color: textDarkBody),
-      bodySmall: GoogleFonts.plusJakartaSans(color: textDarkMuted),
+    textTheme: GoogleFonts.sourceSans3TextTheme(ThemeData.dark().textTheme).copyWith(
+      headlineLarge: GoogleFonts.montserrat(fontWeight: FontWeight.w900, color: textDarkTitle, letterSpacing: -0.5),
+      headlineMedium: GoogleFonts.montserrat(fontWeight: FontWeight.w800, color: textDarkTitle, letterSpacing: -0.3),
+      titleLarge: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: textDarkTitle),
+      titleMedium: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: textDarkTitle),
+      bodyLarge: GoogleFonts.sourceSans3(color: textDarkTitle, fontWeight: FontWeight.w500),
+      bodyMedium: GoogleFonts.sourceSans3(color: textDarkBody),
+      bodySmall: GoogleFonts.sourceSans3(color: textDarkMuted),
     ),
     appBarTheme: AppBarTheme(
       backgroundColor: bgDark,
       foregroundColor: textDarkTitle,
       elevation: 0,
       centerTitle: true,
-      titleTextStyle: GoogleFonts.plusJakartaSans(
+      titleTextStyle: GoogleFonts.montserrat(
         fontSize: 18,
         fontWeight: FontWeight.bold,
         color: textDarkTitle,
@@ -313,7 +313,7 @@ class AppTheme {
         foregroundColor: const Color(0xFF03162C),
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        textStyle: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w900),
+        textStyle: GoogleFonts.sourceSans3(fontSize: 15, fontWeight: FontWeight.w900),
         elevation: 0,
       ).copyWith(
         overlayColor: WidgetStateProperty.resolveWith(
@@ -327,13 +327,13 @@ class AppTheme {
         side: const BorderSide(color: borderDarkSubtle, width: 1.5),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 18),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
+        textStyle: GoogleFonts.sourceSans3(fontSize: 14, fontWeight: FontWeight.w700),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: accentSky,
-        textStyle: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w700),
+        textStyle: GoogleFonts.sourceSans3(fontSize: 14, fontWeight: FontWeight.w700),
       ),
     ),
     cardTheme: CardThemeData(
@@ -374,8 +374,8 @@ class AppTheme {
         borderRadius: BorderRadius.circular(20),
         side: const BorderSide(color: borderDarkSubtle, width: 1),
       ),
-      titleTextStyle: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, color: textDarkTitle),
-      contentTextStyle: GoogleFonts.plusJakartaSans(fontSize: 14, color: textDarkBody),
+      titleTextStyle: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w800, color: textDarkTitle),
+      contentTextStyle: GoogleFonts.sourceSans3(fontSize: 14, color: textDarkBody),
     ),
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: cardDark,
@@ -388,7 +388,7 @@ class AppTheme {
       backgroundColor: cardDarkSubtle,
       selectedColor: accentSky.withValues(alpha: 0.18),
       side: const BorderSide(color: borderDarkSubtle),
-      labelStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: textDarkTitle),
+      labelStyle: GoogleFonts.sourceSans3(fontSize: 12, color: textDarkTitle),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ),
     switchTheme: SwitchThemeData(

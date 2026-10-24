@@ -65,7 +65,6 @@ class OfflineSyncService extends ChangeNotifier {
         if (orders.isNotEmpty) {
           await OfflineStorage.saveOrders(orders);
           _lastSync = DateTime.now();
-          notifyListeners();
         }
         return orders;
       } catch (_) {

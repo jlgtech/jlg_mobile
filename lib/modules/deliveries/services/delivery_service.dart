@@ -155,4 +155,51 @@ class DeliveryService {
       return (success: false, errorMessage: ErrorSanitizer.extractErrorMessage(e));
     }
   }
+
+  /// Prendre en charge une course disponible (Bourse libre)
+  static Future<({bool success, String? errorMessage})> claimOrder(
+    String orderId, {
+    required String driverId,
+    String? vehicleId,
+  }) async {
+    try {
+      final body = {
+        'chauffeur_id': driverId,
+        if (vehicleId != null && vehicleId.isNotEmpty) 'vehicule_id': vehicleId,
+      };
+      final response = await ApiClient.post('/orders/$orderId/assign', body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return (success: true, errorMessage: null);
+      }
+      return (
+        success: false,
+        errorMessage: ErrorSanitizer.parseHttpResponseError(response),
+      );
+    } catch (e) {
+      return (success: false, errorMessage: ErrorSanitizer.extractErrorMessage(e));
+    }
+  }
+
+  /// Signaler un incident ou une panne sur la route et libérer la course
+  static Future<({bool success, String? errorMessage})> reportBreakdown(
+    String orderId, {
+    String? motif,
+  }) async {
+    try {
+      final body = {
+        'motif': motif ?? "Panne mécanique / Incident véhicule sur la route",
+      };
+      final response = await ApiClient.post('/orders/$orderId/report-breakdown', body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return (success: true, errorMessage: null);
+      }
+      return (
+        success: false,
+        errorMessage: ErrorSanitizer.parseHttpResponseError(response),
+      );
+    } catch (e) {
+      return (success: false, errorMessage: ErrorSanitizer.extractErrorMessage(e));
+    }
+  }
 }
+

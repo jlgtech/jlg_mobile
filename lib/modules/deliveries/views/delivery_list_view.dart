@@ -106,8 +106,9 @@ class _DeliveryListViewState extends State<DeliveryListView> {
       body: Consumer<DeliveryProvider>(
         builder: (context, provider, child) {
           final orders = provider.filteredOrders;
-          final totalCount = provider.orders.length;
-          final completedCount = provider.orders.where((o) => o.statut == 'CLOTUREE' || o.statut == 'LIVREE_EN_ATTENTE').toList().length;
+          final myAssignedTourOrders = provider.orders.where((o) => !o.isPickupOrder && !o.isUnassigned).toList();
+          final totalCount = myAssignedTourOrders.length;
+          final completedCount = myAssignedTourOrders.where((o) => o.statut == 'CLOTUREE' || o.statut == 'LIVREE_EN_ATTENTE').length;
           final progressRatio = totalCount > 0 ? (completedCount / totalCount) : 0.0;
 
           return SafeArea(
@@ -159,12 +160,12 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       const Text(
-                                        "Progression de la Tournée",
+                                        "Tournée",
                                         style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        "$completedCount sur $totalCount Livrées",
+                                        "$completedCount / $totalCount livrées",
                                         style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
                                       ),
                                     ],
@@ -201,16 +202,18 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                 ),
               ),
 
-              // Filter Tabs (A Livrer / Livrées / Litiges)
+              // Filter Tabs (Tournée / Bourse / Livrées / Litiges)
               Container(
                 color: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 child: Row(
                   children: [
-                    _buildTabButton(context, provider, 'A_LIVRER', 'À Livrer', Icons.local_shipping_outlined),
-                    const SizedBox(width: 8),
+                    _buildTabButton(context, provider, 'A_LIVRER', 'Tournée', Icons.local_shipping_outlined),
+                    const SizedBox(width: 6),
+                    _buildTabButton(context, provider, 'DISPONIBLES', 'Bourse', Icons.radar_outlined, badgeCount: provider.availableOrdersCount),
+                    const SizedBox(width: 6),
                     _buildTabButton(context, provider, 'LIVREES', 'Livrées', Icons.check_circle_outlined),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     _buildTabButton(context, provider, 'LITIGES', 'Litiges', Icons.warning_amber_outlined),
                   ],
                 ),
@@ -242,14 +245,20 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Toutes vos livraisons assignées sont à jour',
+                                  provider.activeTab == 'DISPONIBLES'
+                                      ? 'Aucune course libre en attente sur la bourse'
+                                      : (provider.activeTab == 'LITIGES'
+                                          ? 'Aucun litige ou réclamation en cours'
+                                          : (provider.activeTab == 'LIVREES'
+                                              ? 'Aucune livraison clôturée pour le moment'
+                                              : 'Toutes vos livraisons assignées sont à jour')),
                                   style: TextStyle(color: Colors.grey[500], fontSize: 12),
                                 ),
                               ],
                             ),
                           )
                         : RefreshIndicator(
-                            onRefresh: () => provider.fetchOrders(),
+                            onRefresh: () => provider.fetchOrders(force: true),
                             child: ListView.builder(
                               padding: EdgeInsets.fromLTRB(16, 16, 16, MediaQuery.of(context).padding.bottom + 36),
                               itemCount: orders.length,
@@ -268,7 +277,7 @@ class _DeliveryListViewState extends State<DeliveryListView> {
     );
   }
 
-  Widget _buildTabButton(BuildContext context, DeliveryProvider provider, String tabKey, String label, IconData icon) {
+  Widget _buildTabButton(BuildContext context, DeliveryProvider provider, String tabKey, String label, IconData icon, {int? badgeCount}) {
     final isSelected = provider.activeTab == tabKey;
     final isDark = AppTheme.isDark(context);
     final activeBg = isDark ? AppTheme.accentMint : AppTheme.primaryRoyal;
@@ -286,7 +295,7 @@ class _DeliveryListViewState extends State<DeliveryListView> {
           onTap: () => provider.setActiveTab(tabKey),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
               color: isSelected ? activeBg : inactiveBg,
               borderRadius: BorderRadius.circular(12),
@@ -297,16 +306,30 @@ class _DeliveryListViewState extends State<DeliveryListView> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, size: 16, color: isSelected ? activeFg : inactiveFg),
-                const SizedBox(width: 6),
+                Icon(icon, size: 14, color: isSelected ? activeFg : inactiveFg),
+                const SizedBox(width: 4),
                 Text(
                   label,
                   style: TextStyle(
                     fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
-                    fontSize: 12,
+                    fontSize: 11,
                     color: isSelected ? activeFg : inactiveFg,
                   ),
                 ),
+                if (badgeCount != null && badgeCount > 0) ...[
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: isSelected ? (isDark ? AppTheme.primaryRoyal : AppTheme.accentSky) : Colors.amber.shade700,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      "$badgeCount",
+                      style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -316,12 +339,13 @@ class _DeliveryListViewState extends State<DeliveryListView> {
   }
 
   Widget _buildDeliveryCard(BuildContext context, DeliveryOrder order, DeliveryProvider provider) {
+    final isUnassigned = order.isUnassigned;
     final isDone = order.statut == 'CLOTUREE' || order.statut == 'LIVREE_EN_ATTENTE';
     final isDispute = order.statut == 'EN_ATTENTE_DE_RELIVRAISON';
     final inProgress = order.statut == 'EN_COURS_DE_LIVRAISON';
     final isDark = AppTheme.isDark(context);
 
-    final statusKey = isDone ? 'DONE' : (isDispute ? 'DISPUTE' : (inProgress ? 'IN_PROGRESS' : 'PENDING'));
+    final statusKey = isUnassigned ? 'PENDING' : (isDone ? 'DONE' : (isDispute ? 'DISPUTE' : (inProgress ? 'IN_PROGRESS' : 'PENDING')));
 
     return Card(
       elevation: 0,
@@ -367,19 +391,38 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: AppTheme.badgeBg(context, statusKey),
+                      color: isUnassigned
+                          ? const Color(0xFF0C4E55).withValues(alpha: 0.12)
+                          : AppTheme.badgeBg(context, statusKey),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppTheme.badgeBorder(context, statusKey),
+                        color: isUnassigned
+                            ? const Color(0xFF0C4E55).withValues(alpha: 0.3)
+                            : AppTheme.badgeBorder(context, statusKey),
                       ),
                     ),
-                    child: Text(
-                      inProgress ? "EN ROUTE" : (isDone ? "LIVRÉE" : (isDispute ? "LITIGE" : "À LIVRER")),
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        color: AppTheme.badgeText(context, statusKey),
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isUnassigned
+                              ? Icons.radar_outlined
+                              : (inProgress
+                                  ? Icons.navigation_rounded
+                                  : (isDone ? Icons.check_circle_rounded : (isDispute ? Icons.warning_amber_rounded : Icons.schedule_rounded))),
+                          size: 13,
+                          color: isUnassigned ? const Color(0xFF0C4E55) : AppTheme.badgeText(context, statusKey),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isUnassigned ? "DISPONIBLE" : (inProgress ? "EN ROUTE" : (isDone ? "LIVRÉE" : (isDispute ? "LITIGE" : "À LIVRER"))),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            color: isUnassigned ? const Color(0xFF0C4E55) : AppTheme.badgeText(context, statusKey),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -454,51 +497,179 @@ class _DeliveryListViewState extends State<DeliveryListView> {
 
               const SizedBox(height: 12),
 
-              // Footer Details & Amount
+              // Footer Details, Badges & Amount
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: AppTheme.badgeBg(context, order.estPayee ? 'DONE' : 'PENDING'),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(
-                            color: AppTheme.badgeBorder(context, order.estPayee ? 'DONE' : 'PENDING'),
+                  Expanded(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        // Badge Statut Encaissement avec icône
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppTheme.badgeBg(context, order.estPayee ? 'DONE' : (order.isCreditOrder ? 'IN_PROGRESS' : 'PENDING')),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: AppTheme.badgeBorder(context, order.estPayee ? 'DONE' : (order.isCreditOrder ? 'IN_PROGRESS' : 'PENDING')),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                order.estPayee
+                                    ? Icons.check_circle_outline
+                                    : (order.isCreditOrder ? Icons.credit_card_outlined : Icons.payments_outlined),
+                                size: 11,
+                                color: AppTheme.badgeText(context, order.estPayee ? 'DONE' : (order.isCreditOrder ? 'IN_PROGRESS' : 'PENDING')),
+                              ),
+                              const SizedBox(width: 3),
+                              Text(
+                                order.estPayee ? "Payée" : (order.isCreditOrder ? "Crédit" : "À encaisser"),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.badgeText(context, order.estPayee ? 'DONE' : (order.isCreditOrder ? 'IN_PROGRESS' : 'PENDING')),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: Text(
-                          order.estPayee ? "Payée" : "À encaisser",
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.badgeText(context, order.estPayee ? 'DONE' : 'PENDING'),
+                        // Badge GPS / 1ère Adresse avec icône
+                        if (order.requiresGpsValidation)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.indigo.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.indigo.withValues(alpha: 0.3)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.gps_fixed, size: 10, color: Colors.indigo),
+                                SizedBox(width: 3),
+                                Text(
+                                  "GPS requis",
+                                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.indigo),
+                                ),
+                              ],
+                            ),
+                          )
+                        else if (order.isGpsValidated)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF047857).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.verified, size: 10, color: Color(0xFF047857)),
+                                SizedBox(width: 3),
+                                Text(
+                                  "GPS OK",
+                                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF047857)),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        order.modePaiement,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.mutedColor(context),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   Text(
                     '${order.montantTotal.toStringAsFixed(2)} HTG',
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
-                      fontSize: 16,
+                      fontSize: 15,
                       color: isDark ? AppTheme.accentMint : AppTheme.primaryRoyal,
                     ),
                   ),
                 ],
               ),
+
+              // Bouton d'action directe contextuel pour le livreur
+              if (isUnassigned) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 42,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0C4E55),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.add_task_rounded, size: 18),
+                    label: const Text(
+                      "Prendre la course",
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                    ),
+                    onPressed: () async {
+                      final auth = Provider.of<AuthProvider>(context, listen: false);
+                      final currentDriverId = auth.currentUser?.id;
+                      if (currentDriverId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Chauffeur non identifié.")),
+                        );
+                        return;
+                      }
+                      final res = await provider.claimOrder(
+                        order.id,
+                        driverId: currentDriverId,
+                      );
+                      if (context.mounted) {
+                        if (res.success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Course ajoutée à votre tournée avec succès !"),
+                              backgroundColor: Color(0xFF0C4E55),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(res.errorMessage ?? "Impossible de prendre la course."),
+                              backgroundColor: Colors.red.shade700,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ),
+              ] else if (!isDone && !isDispute) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 40,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: inProgress ? AppTheme.primaryRoyal : Colors.blue.shade800,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: Icon(inProgress ? Icons.arrow_forward_rounded : Icons.navigation_rounded, size: 16),
+                    label: Text(
+                      inProgress ? "Continuer la course" : "Débuter la course",
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => DeliveryDetailView(order: order)),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ],
           ),
         ),

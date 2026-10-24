@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
+import '../../../core/services/local_notification_service.dart';
 
 enum NotificationFilter {
   all,
@@ -37,8 +38,16 @@ class NotificationProvider with ChangeNotifier {
     }
   }
 
+  final Set<String> _knownNotificationIds = {};
+  DateTime? _lastFetchTime;
+
   /// Chargement des notifications depuis l'API
-  Future<void> fetchNotifications({bool silent = false}) async {
+  Future<void> fetchNotifications({bool silent = false, bool force = false}) async {
+    if (!force && _lastFetchTime != null && DateTime.now().difference(_lastFetchTime!) < const Duration(seconds: 10)) {
+      return;
+    }
+    _lastFetchTime = DateTime.now();
+
     if (!silent) {
       _isLoading = true;
       _errorMessage = null;
@@ -50,6 +59,55 @@ class NotificationProvider with ChangeNotifier {
     if (result.error != null && _notifications.isEmpty) {
       _errorMessage = result.error;
     } else {
+      // Détection précise des notifications non lues nouvellement arrivées
+      if (_knownNotificationIds.isNotEmpty) {
+        final newlyArrivedUnread = result.notifications
+            .where((n) => !_knownNotificationIds.contains(n.id) && !n.estLu)
+            .toList();
+
+        for (final notif in newlyArrivedUnread) {
+          final title = notif.titre.isNotEmpty ? notif.titre : "JL Green Logistique";
+          final body = notif.message;
+          final int notifId = notif.id.hashCode;
+
+          switch (notif.typeNotification) {
+            case 'PAIEMENT_VALIDE':
+              LocalNotificationService.showPaymentNotification(
+                id: notifId,
+                title: title,
+                body: body,
+                payload: notif.lien ?? notif.id,
+              );
+              break;
+            case 'COMMANDE_ANNULEE':
+            case 'LITIGE_LIVRAISON':
+              LocalNotificationService.showAlertNotification(
+                id: notifId,
+                title: title,
+                body: body,
+                payload: notif.lien ?? notif.id,
+              );
+              break;
+            case 'LIVRAISON_ASSIGNEE':
+            case 'LIVRAISON_RETIREE':
+            case 'LIVRAISON_EFFECTUEE':
+            case 'VEHICULE_ASSIGNE':
+            case 'STOCK_RECHARGE':
+            default:
+              LocalNotificationService.showDeliveryNotification(
+                id: notifId,
+                title: title,
+                body: body,
+                payload: notif.lien ?? notif.id,
+              );
+              break;
+          }
+        }
+      }
+
+      // Mémorisation des IDs connus
+      _knownNotificationIds.addAll(result.notifications.map((n) => n.id));
+
       _notifications = result.notifications;
       _unreadCount = result.unreadCount;
       _errorMessage = null;
@@ -123,13 +181,34 @@ class NotificationProvider with ChangeNotifier {
   }
 
   /// Démarrer le polling périodique pour garder les notifications et le badge à jour
-  void startPolling({Duration interval = const Duration(seconds: 45)}) {
+  void startPolling({Duration interval = const Duration(seconds: 60)}) {
     _pollingTimer?.cancel();
     _pollingTimer = Timer.periodic(interval, (_) {
       fetchNotifications(silent: true);
     });
     // Premier appel immédiat
     fetchNotifications(silent: true);
+  }
+
+  /// Mettre en pause le polling périodique (lorsque l'application passe en arrière-plan)
+  void pausePolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+  }
+
+  /// Reprendre le polling périodique (lorsque l'application revient au premier plan)
+  void resumePolling({Duration interval = const Duration(seconds: 60)}) {
+    if (_pollingTimer == null) {
+      startPolling(interval: interval);
+    }
+  }
+
+  /// Réinitialiser l'état des notifications (par exemple à la déconnexion)
+  void clear() {
+    _notifications = [];
+    _unreadCount = 0;
+    _knownNotificationIds.clear();
+    notifyListeners();
   }
 
   /// Arrêter le polling

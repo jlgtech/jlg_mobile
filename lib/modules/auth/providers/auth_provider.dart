@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/auth_storage.dart';
 import '../../../core/utils/error_sanitizer.dart';
+import '../../deliveries/providers/delivery_provider.dart';
+import '../../notifications/providers/notification_provider.dart';
 import '../models/user_model.dart';
 import '../views/login_view.dart';
 
@@ -19,11 +23,37 @@ class AuthProvider extends ChangeNotifier {
 
   AuthProvider() {
     ApiClient.onSessionExpired = () {
-      _isAuthenticated = false;
-      _currentUser = null;
-      _errorMessage = "Session expirée. Veuillez vous reconnecter.";
-      notifyListeners();
+      handleSessionExpired();
     };
+  }
+
+  void _stopBackgroundServices() {
+    try {
+      final ctx = AppConfig.navigatorKey.currentContext;
+      if (ctx != null) {
+        Provider.of<DeliveryProvider>(ctx, listen: false).stopPolling();
+        Provider.of<NotificationProvider>(ctx, listen: false).stopPolling();
+        Provider.of<NotificationProvider>(ctx, listen: false).clear();
+      }
+    } catch (_) {}
+  }
+
+  /// Déconnexion automatique et propre en cas d'expiration de session (code HTTP 401 ou token échu)
+  void handleSessionExpired() {
+    _isAuthenticated = false;
+    _currentUser = null;
+    _errorMessage = "Votre session a expiré. Veuillez vous reconnecter.";
+    _stopBackgroundServices();
+    notifyListeners();
+
+    // Redirection immédiate vers la page de connexion
+    final nav = AppConfig.navigatorKey.currentState;
+    if (nav != null) {
+      nav.pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginView(sessionExpired: true)),
+        (route) => false,
+      );
+    }
   }
 
   Future<bool> checkAuth() async {
@@ -32,6 +62,17 @@ class AuthProvider extends ChangeNotifier {
 
     final token = await AuthStorage.getToken();
     if (token != null && token.isNotEmpty) {
+      // Détection immédiate si le token est expiré
+      if (AuthStorage.isTokenExpired(token)) {
+        await AuthStorage.clearSession();
+        _isAuthenticated = false;
+        _currentUser = null;
+        _errorMessage = "Votre session a expiré. Veuillez vous reconnecter.";
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
       try {
         final response = await ApiClient.get('/auth/me');
         if (response.statusCode == 200) {
@@ -184,12 +225,19 @@ class AuthProvider extends ChangeNotifier {
     } catch (_) {}
 
     await AuthStorage.clearSession();
+    _stopBackgroundServices();
     _isAuthenticated = false;
     _currentUser = null;
+    _errorMessage = null;
     notifyListeners();
 
     if (context != null && context.mounted) {
       Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginView()),
+        (route) => false,
+      );
+    } else {
+      AppConfig.navigatorKey.currentState?.pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const LoginView()),
         (route) => false,
       );

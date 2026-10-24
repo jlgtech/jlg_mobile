@@ -153,6 +153,50 @@ void main() {
       expect(orderDelivery.isPickupOrder, false);
     });
 
+    test('DeliveryOrder requiresGpsValidation correctly identifies pre-validated address to skip step', () {
+      // 1. Commande avec coordonnées certifiées en base (adresse déjà validée lors d'une livraison précédente)
+      final validatedOrder = DeliveryOrder.fromJson({
+        'id': 'cmd-val-1',
+        'adresse_livraison': '12 Rue Lamarre, Pétion-Ville',
+        'latitude_livraison': 18.5135,
+        'longitude_livraison': -72.2874,
+        'confirmation_gps_requise': false,
+        'premiere_livraison_adresse': false,
+      });
+      expect(validatedOrder.requiresGpsValidation, false);
+      expect(validatedOrder.isGpsValidated, true);
+
+      // 2. Première livraison ou coordonnées manquantes (validation obligatoire sur place)
+      final unvalidatedOrder = DeliveryOrder.fromJson({
+        'id': 'cmd-val-2',
+        'adresse_livraison': 'Nouvelle adresse sans repère',
+        'latitude_livraison': null,
+        'longitude_livraison': null,
+        'confirmation_gps_requise': true,
+        'premiere_livraison_adresse': true,
+      });
+      expect(unvalidatedOrder.requiresGpsValidation, true);
+      expect(unvalidatedOrder.isGpsValidated, false);
+    });
+
+    test('DeliveryOrder isUnassigned correctly identifies open pool orders', () {
+      final unassignedOrder = DeliveryOrder.fromJson({
+        'id': 'cmd-unassigned-1',
+        'chauffeur_id': null,
+        'statut': 'VALIDEE',
+      });
+      expect(unassignedOrder.isUnassigned, true);
+      expect(unassignedOrder.chauffeurId, isNull);
+
+      final assignedOrder = DeliveryOrder.fromJson({
+        'id': 'cmd-assigned-1',
+        'chauffeur_id': 'driver-456',
+        'statut': 'EN_COURS_DE_LIVRAISON',
+      });
+      expect(assignedOrder.isUnassigned, false);
+      expect(assignedOrder.chauffeurId, 'driver-456');
+    });
+
     testWidgets('DisputeDialog renders safely with quantity stepper and redelivery options', (tester) async {
       final dummyOrder = DeliveryOrder(
         id: 'ord-123',

@@ -85,17 +85,31 @@ class NotificationModel {
   /// Icône adaptée au type et contexte métier de la notification
   IconData get iconData {
     switch (typeNotification) {
+      case 'LIVRAISON_ASSIGNEE':
+      case 'LIVRAISON':
+      case 'COMMANDE_DISPATCH':
+        return Icons.local_shipping_outlined;
+      case 'LIVRAISON_RETIREE':
+        return Icons.remove_circle_outline;
+      case 'COMMANDE_ANNULEE':
+        return Icons.cancel_outlined;
+      case 'PAIEMENT_VALIDE':
+        return Icons.payments_outlined;
+      case 'LITIGE_LIVRAISON':
+        return Icons.report_problem_outlined;
+      case 'LIVRAISON_EFFECTUEE':
+        return Icons.check_circle_outline;
+      case 'VEHICULE_ASSIGNE':
+        return Icons.directions_car_outlined;
+      case 'STOCK_RECHARGE':
+      case 'STOCK':
+      case 'ALERTE_STOCK':
+        return Icons.inventory_2_outlined;
       case 'CREDIT_A_VALIDER':
         return Icons.credit_score_outlined;
       case 'CAMION_ARRIVE':
       case 'STATION':
-        return Icons.local_shipping_outlined;
-      case 'LIVRAISON':
-      case 'COMMANDE_DISPATCH':
-        return Icons.navigation_outlined;
-      case 'STOCK':
-      case 'ALERTE_STOCK':
-        return Icons.inventory_2_outlined;
+        return Icons.storefront_outlined;
       case 'SECURITE':
         return Icons.shield_outlined;
       default:

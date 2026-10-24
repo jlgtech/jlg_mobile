@@ -18,12 +18,23 @@ class ApiClient {
     return headers;
   }
 
+  static bool _isHandlingExpiredSession = false;
+
   static Future<http.Response> _processResponse(http.Response response) async {
     if (response.statusCode == 401) {
-      // Auto-revoke local session if server responds 401 Unauthorized / Token Expired
+      // Révocation immédiate de la session locale en cas d'expiration du token ou accès non autorisé
       await AuthStorage.clearSession();
-      if (onSessionExpired != null) {
-        onSessionExpired!();
+      if (!_isHandlingExpiredSession) {
+        _isHandlingExpiredSession = true;
+        try {
+          if (onSessionExpired != null) {
+            onSessionExpired!();
+          }
+        } finally {
+          Future.delayed(const Duration(seconds: 2), () {
+            _isHandlingExpiredSession = false;
+          });
+        }
       }
     }
     return response;

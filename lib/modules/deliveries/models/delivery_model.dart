@@ -57,7 +57,9 @@ class DeliveryOrder {
   final String? encaissePar;
   final bool confirmationGpsRequise;
   final bool premiereLivraisonAdresse;
+  final bool estVenteACredit;
   final bool estRetraitSurPlace;
+  final String? chauffeurId;
   final DateTime dateCreation;
   final List<DeliveryItem> items;
   final double? latitude;
@@ -79,12 +81,29 @@ class DeliveryOrder {
     this.encaissePar,
     this.confirmationGpsRequise = false,
     this.premiereLivraisonAdresse = false,
+    this.estVenteACredit = false,
     this.estRetraitSurPlace = false,
+    this.chauffeurId,
     required this.dateCreation,
     required this.items,
     this.latitude,
     this.longitude,
   });
+
+  /// Indique si la course est encore libre (non assignée à un chauffeur)
+  bool get isUnassigned => chauffeurId == null || chauffeurId!.trim().isEmpty;
+
+  /// Indique si la commande est une vente a credit
+  bool get isCreditOrder => estVenteACredit || modePaiement.toUpperCase() == 'CREDIT';
+
+  /// Indique si un encaissement physique sur place est requis avant ou pendant la livraison
+  bool get requiresPaymentOnDelivery => !estPayee && !isCreditOrder;
+
+  /// Indique si l'adresse est deja verifiee et geolocalisee (coordonnees GPS valides)
+  bool get isGpsValidated => latitude != null && longitude != null && !premiereLivraisonAdresse && !confirmationGpsRequise;
+
+  /// Indique si une capture/validation des coordonnees GPS est obligatoire sur place
+  bool get requiresGpsValidation => !isPickupOrder && (premiereLivraisonAdresse || confirmationGpsRequise || latitude == null || longitude == null);
 
   /// Indique si la commande est à récupérer sur place par le client (retrait direct / comptoir / dépôt).
   bool get isPickupOrder {
@@ -119,6 +138,9 @@ class DeliveryOrder {
         .map((i) => DeliveryItem.fromJson(i))
         .toList();
 
+    final rawMode = json['mode_paiement']?.toString() ?? json['modePaiement']?.toString() ?? 'ESPECES';
+    final isCredit = json['est_vente_a_credit'] == true || rawMode.toUpperCase() == 'CREDIT';
+
     return DeliveryOrder(
       id: json['id']?.toString() ?? '',
       code: json['code_commande'] ?? json['code'] ?? 'CMD-${(json['id']?.toString() ?? '').length >= 8 ? (json['id']?.toString() ?? '').substring(0, 8).toUpperCase() : (json['id']?.toString() ?? '').toUpperCase()}',
@@ -126,7 +148,7 @@ class DeliveryOrder {
       clientTel: json['client_telephone'] ?? json['client_passage_telephone'] ?? json['clientTel'] ?? json['client']?['telephone'] ?? '',
       clientEmail: json['client_email'] ?? json['client_passage_email'] ?? json['clientEmail'] ?? json['client']?['email'] ?? '',
       adresseLivraison: json['adresse_livraison'] ?? json['client_adresse'] ?? json['adresseLivraison'] ?? 'Port-au-Prince',
-      modePaiement: json['mode_paiement']?.toString() ?? json['modePaiement']?.toString() ?? 'ESPECES',
+      modePaiement: rawMode,
       precisionPaiement: json['precision_paiement']?.toString() ?? json['precisionPaiement']?.toString(),
       montantTotal: double.tryParse(json['montant_total']?.toString() ?? json['montantTotal']?.toString() ?? '0') ?? 0.0,
       statut: json['statut']?.toString() ?? 'ASSIGNEE',
@@ -135,7 +157,9 @@ class DeliveryOrder {
       encaissePar: json['encaisse_par']?.toString(),
       confirmationGpsRequise: json['confirmation_gps_requise'] == true,
       premiereLivraisonAdresse: json['premiere_livraison_adresse'] == true,
+      estVenteACredit: isCredit,
       estRetraitSurPlace: json['est_retrait_sur_place'] == true || json['estRetraitSurPlace'] == true,
+      chauffeurId: json['chauffeur_id']?.toString() ?? json['chauffeurId']?.toString(),
       dateCreation: DateTime.tryParse(json['cree_le']?.toString() ?? json['dateCreation']?.toString() ?? '') ?? DateTime.now(),
       items: parsedItems,
       latitude: json['latitude_livraison'] != null ? double.tryParse(json['latitude_livraison'].toString()) : null,
@@ -155,11 +179,13 @@ class DeliveryOrder {
       'precisionPaiement': precisionPaiement,
       'montantTotal': montantTotal,
       'statut': statut,
+      'chauffeur_id': chauffeurId,
       'est_payee': estPayee,
       'payee_le': payeeLe,
       'encaisse_par': encaissePar,
       'confirmation_gps_requise': confirmationGpsRequise,
       'premiere_livraison_adresse': premiereLivraisonAdresse,
+      'est_vente_a_credit': isCreditOrder,
       'est_retrait_sur_place': estRetraitSurPlace,
       'dateCreation': dateCreation.toIso8601String(),
       'items': items.map((i) => i.toJson()).toList(),

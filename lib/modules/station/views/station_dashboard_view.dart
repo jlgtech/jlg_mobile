@@ -363,9 +363,15 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  "En Attente",
-                                  style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                                Row(
+                                  children: const [
+                                    Icon(Icons.hourglass_top_rounded, color: Colors.amberAccent, size: 12),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      "En Attente",
+                                      style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
@@ -387,9 +393,15 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  "En Remplissage",
-                                  style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                                Row(
+                                  children: const [
+                                    Icon(Icons.water_drop_rounded, color: Color(0xFF38BDF8), size: 12),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      "En Remplissage",
+                                      style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
@@ -600,9 +612,9 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                                     ),
                                     onPressed: () => _openTicketModalForTruck(null, initialPlaque: _searchController.text.trim()),
                                     icon: const Icon(Icons.add_circle_outline, size: 18),
-                                    label: Text(
-                                      "Ajouter le camion '${_searchController.text.toUpperCase().trim()}' & émettre le ticket",
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                    label: const Text(
+                                      "Ajouter & émettre le ticket",
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                                     ),
                                   ),
                                 ),
@@ -882,8 +894,8 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                           ));
                         }
                       },
-                      icon: const Icon(Icons.play_arrow, size: 18),
-                      label: const Text("Ouvrir Vanne", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                      label: const Text("Ouvrir vanne", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     ),
                   ),
                 ],
@@ -912,8 +924,8 @@ class _StationDashboardViewState extends State<StationDashboardView> {
                           ));
                         }
                       },
-                      icon: const Icon(Icons.check, size: 18),
-                      label: const Text("Terminer & Fermer Vanne", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      icon: const Icon(Icons.check_circle_rounded, size: 18),
+                      label: const Text("Clôturer vanne", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                     ),
                   ),
               ],

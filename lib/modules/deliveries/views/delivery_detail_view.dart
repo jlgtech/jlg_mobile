@@ -4,6 +4,7 @@ import '../models/delivery_model.dart';
 import '../providers/delivery_provider.dart';
 import '../widgets/dispute_dialog.dart';
 import '../widgets/address_map_modal.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -29,11 +30,10 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Livraison démarrée ! En route vers le client...'),
+          content: Text('Livraison démarrée. En route vers le client.'),
           backgroundColor: AppTheme.primaryRoyal,
         ),
       );
-      Navigator.pop(context);
     } else if (provider.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -60,7 +60,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Livraison validée avec succès ! Remise client confirmée.'),
+          content: Text('Livraison validée avec succès. Remise client confirmée.'),
           backgroundColor: AppTheme.primaryRoyal,
         ),
       );
@@ -76,16 +76,6 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
   }
 
   void _openPaymentModal() {
-    final inProgress = widget.order.statut == 'EN_COURS_DE_LIVRAISON' || widget.order.statut == 'PARTIELLEMENT_LIVREE';
-    if (!inProgress) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Vous devez d'abord démarrer la livraison vers ce client avant de pouvoir encaisser."),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
     String selectedMode = widget.order.modePaiement;
     final notesController = TextEditingController();
 
@@ -118,159 +108,158 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                Center(
-                  child: Container(
-                    width: 44,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: isDarkModal ? const Color(0xFF475569) : Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(10),
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: isDarkModal ? const Color(0xFF475569) : Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isDarkModal
+                                ? AppTheme.accentMint.withValues(alpha: 0.15)
+                                : const Color(0xFFEBF3FC),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            Icons.point_of_sale,
+                            color: isDarkModal ? AppTheme.accentMint : AppTheme.primaryRoyal,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Étape 2 : Encaissement de la Commande",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 16,
+                                  color: AppTheme.titleColor(ctx),
+                                ),
+                              ),
+                              Text(
+                                "Règlement physique à la livraison",
+                                style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(ctx)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: isDarkModal
-                            ? AppTheme.accentMint.withValues(alpha: 0.15)
-                            : const Color(0xFFEBF3FC),
-                        borderRadius: BorderRadius.circular(10),
+                        color: isDarkModal ? AppTheme.cardDarkSubtle : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDarkModal ? AppTheme.borderDark : Colors.grey.shade200,
+                        ),
                       ),
-                      child: Icon(
-                        Icons.point_of_sale,
-                        color: isDarkModal ? AppTheme.accentMint : AppTheme.primaryRoyal,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            "Encaisser le Paiement",
+                            "Montant à Encaisser :",
                             style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
                               color: AppTheme.titleColor(ctx),
                             ),
                           ),
                           Text(
-                            "Règlement de la commande à la livraison",
-                            style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(ctx)),
+                            "${widget.order.montantTotal.toStringAsFixed(2)} HTG",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 17,
+                              color: isDarkModal ? AppTheme.accentMint : AppTheme.primaryRoyal,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: isDarkModal ? AppTheme.cardDarkSubtle : Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isDarkModal ? AppTheme.borderDark : Colors.grey.shade200,
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<String>(
+                      initialValue: ["ESPECES", "MONCASH", "NATCASH", "VIREMENT", "CHEQUE"].contains(selectedMode)
+                          ? selectedMode
+                          : "ESPECES",
+                      decoration: InputDecoration(
+                        labelText: "Mode d'Encaissement",
+                        prefixIcon: const Icon(Icons.payment),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: "ESPECES", child: Text("ESPÈCES (Cash)")),
+                        DropdownMenuItem(value: "MONCASH", child: Text("MONCASH")),
+                        DropdownMenuItem(value: "NATCASH", child: Text("NATCASH")),
+                        DropdownMenuItem(value: "VIREMENT", child: Text("VIREMENT BANCAIRE")),
+                        DropdownMenuItem(value: "CHEQUE", child: Text("CHÈQUE")),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setModalState(() => selectedMode = val);
+                      },
                     ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Montant à Encaisser :",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: AppTheme.titleColor(ctx),
-                        ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: notesController,
+                      decoration: InputDecoration(
+                        labelText: "Notes ou Référence (Optionnel)",
+                        hintText: "Ex: Réf MonCash #88219...",
+                        prefixIcon: const Icon(Icons.note_alt_outlined),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      Text(
-                        "${widget.order.montantTotal.toStringAsFixed(2)} HTG",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 17,
-                          color: isDarkModal ? AppTheme.accentMint : AppTheme.primaryRoyal,
-                        ),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDarkModal ? AppTheme.accentMint : AppTheme.primaryRoyal,
+                        foregroundColor: isDarkModal ? const Color(0xFF03162C) : Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  initialValue: ["ESPECES", "MONCASH", "NATCASH", "VIREMENT", "CHEQUE"].contains(selectedMode)
-                      ? selectedMode
-                      : "ESPECES",
-                  decoration: InputDecoration(
-                    labelText: "Mode d'Encaissement",
-                    prefixIcon: const Icon(Icons.payment),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: "ESPECES", child: Text("ESPÈCES (Cash)")),
-                    DropdownMenuItem(value: "MONCASH", child: Text("MONCASH")),
-                    DropdownMenuItem(value: "NATCASH", child: Text("NATCASH")),
-                    DropdownMenuItem(value: "VIREMENT", child: Text("VIREMENT BANCAIRE")),
-                    DropdownMenuItem(value: "CHEQUE", child: Text("CHÈQUE")),
-                  ],
-                  onChanged: (val) {
-                    if (val != null) setModalState(() => selectedMode = val);
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: notesController,
-                  decoration: InputDecoration(
-                    labelText: "Notes ou Référence (Optionnel)",
-                    hintText: "Ex: Réf MonCash #88219...",
-                    prefixIcon: const Icon(Icons.note_alt_outlined),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDarkModal ? AppTheme.accentMint : AppTheme.primaryRoyal,
-                    foregroundColor: isDarkModal ? const Color(0xFF03162C) : Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () async {
-                    Navigator.of(ctx).pop();
-                    setState(() => _isProcessing = true);
-                    final provider = Provider.of<DeliveryProvider>(context, listen: false);
-                    final ok = await provider.recordPayment(
-                      widget.order.id,
-                      modePaiement: selectedMode,
-                      notesPaiement: notesController.text.trim().isNotEmpty
-                          ? notesController.text.trim()
-                          : "Paiement encaissé par le livreur (${widget.order.code})",
-                    );
-                    setState(() => _isProcessing = false);
-                    if (!mounted) return;
-                    if (ok) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("Paiement de ${widget.order.montantTotal.toStringAsFixed(2)} HTG validé avec succès !"),
-                          backgroundColor: AppTheme.primaryRoyal,
-                        ),
-                      );
-                      Navigator.of(context).pop();
-                    } else if (provider.errorMessage != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(provider.errorMessage!),
-                          backgroundColor: Colors.red.shade700,
-                        ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text("Valider l'Encaissement", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                ),
+                      onPressed: () async {
+                        Navigator.of(ctx).pop();
+                        setState(() => _isProcessing = true);
+                        final provider = Provider.of<DeliveryProvider>(context, listen: false);
+                        final ok = await provider.recordPayment(
+                          widget.order.id,
+                          modePaiement: selectedMode,
+                          notesPaiement: notesController.text.trim().isNotEmpty
+                              ? notesController.text.trim()
+                              : "Paiement encaissé par le livreur (${widget.order.code})",
+                        );
+                        setState(() => _isProcessing = false);
+                        if (!mounted) return;
+                        if (ok) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Paiement de ${widget.order.montantTotal.toStringAsFixed(2)} HTG validé avec succès."),
+                              backgroundColor: AppTheme.primaryRoyal,
+                            ),
+                          );
+                        } else if (provider.errorMessage != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(provider.errorMessage!),
+                              backgroundColor: Colors.red.shade700,
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: const Text("Valider l'Encaissement", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    ),
                   ],
                 ),
               ),
@@ -279,6 +268,21 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
         },
       ),
     );
+  }
+
+  void _openAddressValidationModal([DeliveryOrder? customOrder]) async {
+    final provider = Provider.of<DeliveryProvider>(context, listen: false);
+    final orderToUse = customOrder ?? provider.orders.firstWhere(
+      (o) => o.id == widget.order.id,
+      orElse: () => widget.order,
+    );
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AddressMapModal(order: orderToUse),
+    );
+    if (result == true && mounted) {
+      Provider.of<DeliveryProvider>(context, listen: false).fetchOrders(force: true);
+    }
   }
 
   void _openDisputeModal() {
@@ -336,20 +340,125 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     );
   }
 
+  void _openBreakdownDialog() {
+    final reasonController = TextEditingController(text: "Panne mécanique / Incident véhicule");
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.car_crash_outlined, color: Colors.red.shade700, size: 22),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                "Signaler Panne / Relais",
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Cette action libère la course de votre tournée et avertit immédiatement le dispatcheur et les autres livreurs pour qu'un collègue prenne le relais.",
+              style: TextStyle(fontSize: 12, color: Colors.black87),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              "Motif de l'immobilisation :",
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: reasonController,
+              maxLines: 2,
+              decoration: InputDecoration(
+                hintText: "Ex: Crevaison, panne moteur, accident...",
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                contentPadding: const EdgeInsets.all(12),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Annuler"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final provider = Provider.of<DeliveryProvider>(context, listen: false);
+              setState(() => _isProcessing = true);
+              final res = await provider.reportBreakdown(widget.order.id, motif: reasonController.text.trim());
+              setState(() => _isProcessing = false);
+              if (mounted) {
+                if (res.success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Course libérée pour relais. Alerte transmise au dispatcheur."),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  Navigator.pop(context);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(res.errorMessage ?? "Impossible de libérer la course."),
+                      backgroundColor: Colors.red.shade700,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text("Confirmer le Relais", style: TextStyle(fontWeight: FontWeight.w900)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final order = widget.order;
-    final isDone = order.statut == 'CLOTUREE' || order.statut == 'LIVREE_EN_ATTENTE';
-    final isDispute = order.statut == 'EN_ATTENTE_DE_RELIVRAISON';
-    final inProgress = order.statut == 'EN_COURS_DE_LIVRAISON';
-    final bool isDark = AppTheme.isDark(context);
+    // Obtenir la commande a jour depuis le provider si disponible
+    final provider = Provider.of<DeliveryProvider>(context);
+    final currentOrder = provider.orders.firstWhere(
+      (o) => o.id == widget.order.id,
+      orElse: () => widget.order,
+    );
 
+    final isDone = currentOrder.statut == 'CLOTUREE' || currentOrder.statut == 'LIVREE_EN_ATTENTE';
+    final isDispute = currentOrder.statut == 'EN_ATTENTE_DE_RELIVRAISON';
+    final inProgress = currentOrder.statut == 'EN_COURS_DE_LIVRAISON';
+    final isStarted = inProgress || isDone;
+
+    // Conditions d'etapes
+    final bool step1Done = isStarted;
+    final bool step2PaidOrCredit = currentOrder.estPayee || currentOrder.isCreditOrder;
+    final bool step3GpsDone = !currentOrder.requiresGpsValidation || isDone;
+
+    final isDark = AppTheme.isDark(context);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          order.code,
+          currentOrder.code,
           style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
         ),
         backgroundColor: AppTheme.primaryRoyal,
@@ -363,395 +472,98 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
           padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPadding + 36),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Status Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDone
-                    ? const Color(0xFFEFF6FF)
-                    : (isDispute ? Colors.orange[50] : const Color(0xFFEFF6FF)),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isDone
-                      ? const Color(0xFFBAE6FD)
-                      : (isDispute ? Colors.orange[200]! : const Color(0xFFBAE6FD)),
-                ),
-              ),
-              child: Row(
+            children: [
+              // Synthese Destinataire
+              _buildCustomerCard(context, currentOrder),
+
+              const SizedBox(height: 16),
+
+              // Stepper Guidé Titre
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(
-                    isDone
-                        ? Icons.check_circle_outline
-                        : (isDispute ? Icons.warning_amber_outlined : Icons.local_shipping_outlined),
-                    color: isDone
-                        ? AppTheme.primaryRoyal
-                        : (isDispute ? Colors.orange[800] : AppTheme.primaryRoyal),
-                    size: 32,
+                  const Text(
+                    "Progression de la Livraison",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Statut de la Course',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          order.statut,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w900,
-                            color: isDone
-                                ? AppTheme.textNight
-                                : (isDispute ? Colors.orange[900] : AppTheme.textNight),
-                          ),
-                        ),
-                      ],
+                  Text(
+                    isDone ? "Terminée" : (isDispute ? "Litige" : (inProgress ? "En cours" : "À débuter")),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDone ? const Color(0xFF047857) : (inProgress ? Colors.blue.shade700 : Colors.grey.shade600),
                     ),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 12),
 
-            const SizedBox(height: 16),
-
-            // Client Info Section & Confirmation d'Adresse Première Livraison
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Informations Destinataire',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 14,
-                            color: AppTheme.brandPrimary(context),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppTheme.badgeBg(context, 'IN_PROGRESS'),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppTheme.badgeBorder(context, 'IN_PROGRESS')),
-                          ),
-                          child: Text(
-                            "1ère Livraison",
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.badgeText(context, 'IN_PROGRESS'),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 20),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        backgroundColor: isDark
-                            ? AppTheme.accentSky.withValues(alpha: 0.15)
-                            : const Color(0xFFEBF3FC),
-                        child: Icon(Icons.person, color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal),
-                      ),
-                      title: Text(
-                        order.clientNom,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: AppTheme.titleColor(context),
-                        ),
-                      ),
-                      subtitle: Text(
-                        order.clientTel.isEmpty ? 'Téléphone non renseigné' : order.clientTel,
-                        style: TextStyle(color: AppTheme.mutedColor(context), fontSize: 12),
-                      ),
-                      trailing: order.clientTel.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(Icons.phone, color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal),
-                              tooltip: "Appeler le client",
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Numéro du destinataire : ${order.clientTel}"),
-                                    backgroundColor: isDark ? AppTheme.cardDarkElevated : AppTheme.primaryRoyal,
-                                    duration: const Duration(seconds: 3),
-                                  ),
-                                );
-                              },
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.location_on_outlined, color: isDark ? AppTheme.accentMint : Colors.grey, size: 20),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                order.adresseLivraison,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.titleColor(context),
-                                ),
-                              ),
-                              if (order.latitude != null && order.longitude != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 2),
-                                  child: Text(
-                                    "GPS : ${order.latitude!.toStringAsFixed(4)}, ${order.longitude!.toStringAsFixed(4)} (Confirmé)",
-                                    style: TextStyle(fontSize: 11, color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Badge Statut Paiement (Payée vs À Encaisser)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.badgeBg(context, order.estPayee ? 'DONE' : 'PENDING'),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: AppTheme.badgeBorder(context, order.estPayee ? 'DONE' : 'PENDING'),
-                        ),
-                      ),
-                      child: Row(
+              if (currentOrder.isUnassigned) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0C4E55).withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF0C4E55).withValues(alpha: 0.25)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Row(
                         children: [
-                          Icon(
-                            order.estPayee ? Icons.check_circle : Icons.pending_outlined,
-                            size: 18,
-                            color: AppTheme.badgeText(context, order.estPayee ? 'DONE' : 'PENDING'),
-                          ),
-                          const SizedBox(width: 8),
+                          Icon(Icons.radar_outlined, color: Color(0xFF0C4E55), size: 20),
+                          SizedBox(width: 8),
                           Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  order.estPayee ? "COMMANDE PAYÉE" : "PAIEMENT À ENCAISSER",
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w900,
-                                    color: AppTheme.badgeText(context, order.estPayee ? 'DONE' : 'PENDING'),
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  order.estPayee
-                                      ? "Mode : ${order.modePaiement} ${order.precisionPaiement != null ? "(${order.precisionPaiement})" : ""}"
-                                      : "Montant à percevoir : ${order.montantTotal.toStringAsFixed(2)} HTG (${order.modePaiement})",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.badgeText(context, order.estPayee ? 'DONE' : 'PENDING'),
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              "Course disponible (Bourse libre)",
+                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF0C4E55)),
                             ),
                           ),
                         ],
                       ),
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    // Bouton de Confirmation d'Adresse avec Carte Interactive (Spécification Première Livraison)
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryRoyal,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      const SizedBox(height: 6),
+                      const Text(
+                        "Cette livraison n'a pas encore de chauffeur attitré. Vous pouvez la prendre en charge dès maintenant.",
+                        style: TextStyle(fontSize: 11, color: Colors.black87),
                       ),
-                      icon: const Icon(Icons.map_outlined, size: 20),
-                      label: const Text(
-                        "Ouvrir Carte & Confirmer Adresse/GPS",
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => AddressMapModal(order: order),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // Articles Items Section
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Produits à Remettre',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14,
-                        color: AppTheme.primaryRoyal,
-                      ),
-                    ),
-                    const Divider(height: 20),
-                    if (order.items.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Text(
-                          '1x Pack Sachets d\'Eau (500ml - Pack 50)',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0C4E55),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                         ),
-                      )
-                    else
-                      ...order.items.map((item) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEFF6FF),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    '${item.quantiteCommandee}x',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      color: AppTheme.primaryRoyal,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.designation,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      if (item.quantiteOfferte > 0)
-                                        Text(
-                                          '+${item.quantiteOfferte} Offert(s) (Bonus)',
-                                          style: const TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppTheme.primaryRoyal,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )),
-                    const Divider(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Montant Total :',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        Text(
-                          '${order.montantTotal.toStringAsFixed(2)} HTG',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 17,
-                            color: AppTheme.primaryRoyal,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Action Buttons
-            if (!isDone && !isDispute) ...[
-              // Bouton d'encaissement si non payée : débloqué uniquement si la livraison est déjà lancée
-              if (!order.estPayee && inProgress) ...[
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.point_of_sale),
-                    label: Text(
-                      'Encaisser le Paiement (${order.montantTotal.toStringAsFixed(2)} HTG)',
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber.shade800,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 2,
-                    ),
-                    onPressed: _isProcessing ? null : _openPaymentModal,
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-
-              // Notice d'information lorsque la tournée n'est pas encore lancée
-              if (!order.estPayee && !inProgress) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.badgeBg(context, 'PENDING'),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppTheme.badgeBorder(context, 'PENDING')),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: AppTheme.badgeText(context, 'PENDING'), size: 20),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          "Paiement à percevoir à la livraison (${order.montantTotal.toStringAsFixed(2)} HTG). Démarrez la tournée pour débloquer l'encaissement.",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.badgeText(context, 'PENDING'),
-                          ),
-                        ),
+                        icon: const Icon(Icons.add_task_rounded, size: 18),
+                        label: const Text("Prendre en charge cette course", style: TextStyle(fontWeight: FontWeight.w900)),
+                        onPressed: _isProcessing ? null : () async {
+                          final auth = Provider.of<AuthProvider>(context, listen: false);
+                          final currentDriverId = auth.currentUser?.id;
+                          if (currentDriverId == null) return;
+                          final messenger = ScaffoldMessenger.of(context);
+                          setState(() => _isProcessing = true);
+                          final res = await provider.claimOrder(
+                            currentOrder.id,
+                            driverId: currentDriverId,
+                          );
+                          if (!mounted) return;
+                          setState(() => _isProcessing = false);
+                          if (res.success) {
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text("Course prise en charge avec succès !"),
+                                backgroundColor: Color(0xFF0C4E55),
+                              ),
+                            );
+                          } else {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(res.errorMessage ?? "Action impossible"),
+                                backgroundColor: Colors.red.shade700,
+                              ),
+                            );
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -759,66 +571,600 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                 const SizedBox(height: 12),
               ],
 
-              if (!inProgress)
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.navigation_outlined),
-                    label: const Text(
-                      'Démarrer la Tournée vers ce Client',
-                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[800],
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 3,
-                    ),
-                    onPressed: _isProcessing ? null : _handleStart,
-                  ),
-                )
-              else
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.verified_outlined),
-                    label: const Text(
-                      'Valider Remise Client & GPS',
-                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryRoyal,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 3,
-                    ),
-                    onPressed: _isProcessing ? null : _handleComplete,
-                  ),
+              // Stepper 4 Etapes Sequentielles
+              _buildStepItem(
+                context,
+                stepNumber: 1,
+                title: "1. Départ course",
+                subtitle: step1Done
+                    ? "En déplacement vers le client"
+                    : "Signaler le départ au système",
+                isCompleted: step1Done,
+                isActive: !step1Done && !isDone,
+                badgeText: step1Done ? "En cours" : "À débuter",
+                badgeColor: step1Done ? const Color(0xFF047857) : Colors.blue.shade800,
+                child: !step1Done && !isDone
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue.shade800,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                              icon: const Icon(Icons.navigation_rounded, size: 20),
+                              label: const Text("Débuter la course", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              onPressed: _isProcessing ? null : _handleStart,
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.lock_outline, size: 14, color: AppTheme.mutedColor(context)),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      "Étapes suivantes verrouillées jusqu'au départ.",
+                                      style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(context)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : null,
+              ),
+
+              // Etape 2 visible uniquement si Etape 1 accomplie
+              if (step1Done) ...[
+                const SizedBox(height: 10),
+                _buildStepItem(
+                  context,
+                  stepNumber: 2,
+                  title: "2. Encaissement",
+                  subtitle: currentOrder.estPayee
+                      ? "Paiement reçu (${currentOrder.modePaiement})"
+                      : (currentOrder.isCreditOrder
+                          ? "Vente à crédit : encaissement non requis"
+                          : "Règlement comptant obligatoire"),
+                  isCompleted: step2PaidOrCredit,
+                  isActive: !step2PaidOrCredit && !isDone,
+                  badgeText: currentOrder.isCreditOrder ? "Vente à Crédit" : (currentOrder.estPayee ? "Réglée" : "À Encaisser"),
+                  badgeColor: currentOrder.isCreditOrder ? Colors.blue.shade700 : (currentOrder.estPayee ? const Color(0xFF047857) : Colors.amber.shade800),
+                  child: !step2PaidOrCredit && !isDone
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.amber.shade800,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                icon: const Icon(Icons.point_of_sale_rounded, size: 20),
+                                label: Text(
+                                  "Encaisser : ${currentOrder.montantTotal.toStringAsFixed(2)} HTG",
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                ),
+                                onPressed: _isProcessing ? null : _openPaymentModal,
+                              ),
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.lock_outline, size: 14, color: AppTheme.mutedColor(context)),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        "Étape suivante débloquée dès le règlement.",
+                                        style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(context)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : null,
                 ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton.icon(
-                  icon: const Icon(Icons.report_problem_outlined, color: Colors.orange),
-                  label: const Text(
-                    'Signaler un Litige / Casse',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.orange, width: 1.5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  onPressed: _openDisputeModal,
+              ],
+
+              // Etape de Validation GPS : Visible UNIQUEMENT si la commande REQUIERT une validation GPS sur place.
+              if (currentOrder.requiresGpsValidation && step1Done && step2PaidOrCredit) ...[
+                const SizedBox(height: 10),
+                _buildStepItem(
+                  context,
+                  stepNumber: 3,
+                  title: "3. Localisation GPS",
+                  subtitle: step3GpsDone
+                      ? "Position confirmée sur place"
+                      : "1ère livraison : capture requise",
+                  isCompleted: step3GpsDone,
+                  isActive: !step3GpsDone && !isDone,
+                  badgeText: step3GpsDone ? "GPS Confirmé" : "À Capturer",
+                  badgeColor: step3GpsDone ? const Color(0xFF047857) : Colors.indigo.shade700,
+                  child: !step3GpsDone && !isDone
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primaryRoyal,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                              ),
+                              icon: const Icon(Icons.my_location_rounded, size: 20),
+                              label: const Text("Capturer position GPS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              onPressed: _openAddressValidationModal,
+                            ),
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.lock_outline, size: 14, color: AppTheme.mutedColor(context)),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      "Contrôle final disponible après capture.",
+                                      style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(context)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : null,
+                ),
+              ],
+
+              // Etape finale de Contrôle & Clôture :
+              if (step1Done && step2PaidOrCredit && step3GpsDone) ...[
+                const SizedBox(height: 10),
+                _buildStepItem(
+                  context,
+                  stepNumber: currentOrder.requiresGpsValidation ? 4 : 3,
+                  title: "${currentOrder.requiresGpsValidation ? 4 : 3}. Remise & Contrôle",
+                  subtitle: isDone
+                      ? "Livraison clôturée"
+                      : "Vérifier la marchandise avant remise",
+                  isCompleted: isDone,
+                  isActive: !isDone,
+                  child: !isDone
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Récapitulatif Articles
+                              _buildItemsSummary(context, currentOrder),
+                              const SizedBox(height: 14),
+
+                              // Bouton Terminer Conforme
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF047857),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  elevation: 2,
+                                ),
+                                icon: const Icon(Icons.verified_rounded, size: 20),
+                                label: const Text(
+                                  "Confirmer la remise",
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                                ),
+                                onPressed: _isProcessing ? null : _handleComplete,
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              // Bouton Litige / Produit Défectueux
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Colors.orange, width: 1.5),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                icon: const Icon(Icons.report_problem_rounded, color: Colors.orange, size: 18),
+                                label: const Text(
+                                  "Signaler un litige",
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
+                                ),
+                                onPressed: _isProcessing ? null : _openDisputeModal,
+                              ),
+
+                              const SizedBox(height: 8),
+
+                              // Bouton Signaler Panne / Relais
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: Colors.red.shade400, width: 1.5),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                icon: Icon(Icons.car_crash_outlined, color: Colors.red.shade700, size: 18),
+                                label: Text(
+                                  "Signaler panne / Passer le relais",
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade700),
+                                ),
+                                onPressed: _isProcessing ? null : _openBreakdownDialog,
+                              ),
+                            ],
+                          ),
+                        )
+                      : null,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepItem(
+    BuildContext context, {
+    required int stepNumber,
+    required String title,
+    required String subtitle,
+    required bool isCompleted,
+    required bool isActive,
+    String? badgeText,
+    Color? badgeColor,
+    Widget? child,
+  }) {
+    final isDark = AppTheme.isDark(context);
+
+    Color getStatusColor() {
+      if (isCompleted) return const Color(0xFF047857);
+      if (isActive) return AppTheme.primaryRoyal;
+      return Colors.grey.shade400;
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor(context),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isActive
+              ? AppTheme.primaryRoyal.withValues(alpha: 0.6)
+              : (isCompleted ? const Color(0xFF047857).withValues(alpha: 0.3) : AppTheme.borderColor(context)),
+          width: isActive ? 1.8 : 1.0,
+        ),
+        boxShadow: isActive
+            ? [
+                BoxShadow(
+                  color: AppTheme.primaryRoyal.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ]
+            : null,
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: getStatusColor().withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: getStatusColor(), width: 1.5),
+                ),
+                child: Center(
+                  child: isCompleted
+                      ? const Icon(Icons.check, size: 16, color: Color(0xFF047857))
+                      : Text(
+                          "$stepNumber",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                            color: getStatusColor(),
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                              color: AppTheme.titleColor(context),
+                            ),
+                          ),
+                        ),
+                        if (badgeText != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: (badgeColor ?? AppTheme.primaryRoyal).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              badgeText,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: badgeColor ?? AppTheme.primaryRoyal,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? AppTheme.mutedColor(context) : Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ],
-        ),
+          ),
+          ?child,
+        ],
       ),
-    ),
-  );
-}
+    );
+  }
+
+  Widget _buildCustomerCard(BuildContext context, DeliveryOrder order) {
+    final isDark = AppTheme.isDark(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor(context),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.borderColor(context)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Informations Destinataire",
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                  color: AppTheme.titleColor(context),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: order.isCreditOrder
+                      ? Colors.blue.withValues(alpha: 0.12)
+                      : Colors.amber.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  order.isCreditOrder ? "Vente à Crédit" : "Vente Comptant",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: order.isCreditOrder ? Colors.blue.shade800 : Colors.amber.shade900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 18),
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: isDark
+                    ? AppTheme.accentSky.withValues(alpha: 0.15)
+                    : const Color(0xFFEBF3FC),
+                child: Icon(Icons.person, color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      order.clientNom,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppTheme.titleColor(context),
+                      ),
+                    ),
+                    Text(
+                      order.clientTel.isEmpty ? "Téléphone non renseigné" : order.clientTel,
+                      style: TextStyle(color: AppTheme.mutedColor(context), fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              if (order.clientTel.isNotEmpty)
+                IconButton(
+                  icon: Icon(Icons.phone, color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal),
+                  tooltip: "Appeler le client",
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Numéro du destinataire : ${order.clientTel}"),
+                        backgroundColor: isDark ? AppTheme.cardDarkElevated : AppTheme.primaryRoyal,
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.location_on_outlined, color: isDark ? AppTheme.accentMint : Colors.grey.shade600, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      order.adresseLivraison,
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.titleColor(context)),
+                    ),
+                    if (order.latitude != null && order.longitude != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Row(
+                          children: [
+                            Text(
+                              "GPS : ${order.latitude!.toStringAsFixed(4)}, ${order.longitude!.toStringAsFixed(4)} (Vérifié)",
+                              style: const TextStyle(fontSize: 10, color: Color(0xFF047857), fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () => _openAddressValidationModal(order),
+                              borderRadius: BorderRadius.circular(4),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.map_outlined, size: 12, color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      "Voir carte",
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
+                                        fontWeight: FontWeight.bold,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemsSummary(BuildContext context, DeliveryOrder order) {
+    final isDark = AppTheme.isDark(context);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.cardDarkSubtle : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.borderColor(context)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Articles à livrer",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+              Text(
+                "${order.montantTotal.toStringAsFixed(2)} HTG",
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                  color: isDark ? AppTheme.accentMint : AppTheme.primaryRoyal,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...order.items.map((item) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryRoyal.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        "${item.quantiteCommandee}x",
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: AppTheme.primaryRoyal),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        item.designation,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    if (item.quantiteOfferte > 0)
+                      Text(
+                        "+${item.quantiteOfferte} offert",
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF047857)),
+                      ),
+                  ],
+                ),
+              )),
+        ],
+      ),
+    );
+  }
 }

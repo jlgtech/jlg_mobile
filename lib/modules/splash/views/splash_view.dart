@@ -5,7 +5,9 @@ import '../../auth/providers/auth_provider.dart';
 import '../../../widgets/layout/app_shell.dart';
 import '../../auth/views/login_view.dart';
 import '../../auth/views/force_change_password_view.dart';
+import '../../deliveries/providers/delivery_provider.dart';
 import '../../deliveries/views/delivery_list_view.dart';
+import '../../notifications/providers/notification_provider.dart';
 
 class SplashView extends StatefulWidget {
   const SplashView({super.key});
@@ -59,19 +61,28 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
     ]);
 
     final isAuthenticated = results[1] as bool;
+    if (!mounted) return;
 
     final user = authProvider.currentUser;
     Widget destination;
     if (isAuthenticated) {
+      // Démarrage des synchronisations d'arrière-plan uniquement si session active et rôle éligible
+      if (user != null && (user.role == 'LIVREUR' || user.role == 'CHAUFFEUR')) {
+        Provider.of<DeliveryProvider>(context, listen: false).startPolling();
+      }
+      Provider.of<NotificationProvider>(context, listen: false).startPolling();
+
       if (user != null && user.doitChangerMotDePasse) {
-        destination = const ForceChangePasswordView();
+        destination = ForceChangePasswordView();
       } else if (user != null && (user.role == 'LIVREUR' || user.role == 'CHAUFFEUR')) {
-        destination = const DeliveryListView();
+        destination = DeliveryListView();
       } else {
         destination = const AppShell();
       }
     } else {
-      destination = const LoginView();
+      final isExpired = authProvider.errorMessage != null &&
+          authProvider.errorMessage!.toLowerCase().contains("session expirée");
+      destination = LoginView(sessionExpired: isExpired);
     }
 
     if (!mounted) return;

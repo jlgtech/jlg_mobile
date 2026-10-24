@@ -122,7 +122,7 @@ class _NotificationsViewState extends State<NotificationsView> {
 
           return RefreshIndicator(
             color: AppTheme.primaryEmerald,
-            onRefresh: () => provider.fetchNotifications(),
+            onRefresh: () => provider.fetchNotifications(force: true),
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [

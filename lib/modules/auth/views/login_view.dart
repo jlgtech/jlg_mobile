@@ -4,13 +4,19 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/theme_provider.dart';
 import '../../../widgets/layout/app_shell.dart';
 import '../../../widgets/overlays/app_notifications.dart';
+import '../../deliveries/providers/delivery_provider.dart';
 import '../../deliveries/views/delivery_list_view.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../providers/auth_provider.dart';
 import 'force_change_password_view.dart';
 
 class LoginView extends StatefulWidget {
-  const LoginView({super.key});
+  final bool sessionExpired;
+
+  const LoginView({
+    super.key,
+    this.sessionExpired = false,
+  });
 
   @override
   State<LoginView> createState() => _LoginViewState();
@@ -39,12 +45,16 @@ class _LoginViewState extends State<LoginView> {
 
       if (!mounted) return;
       if (success) {
-        Provider.of<NotificationProvider>(context, listen: false).fetchNotifications();
-        AppNotifications.showSuccess(context, "Connexion réussie !");
         final user = authProvider.currentUser;
+        // Démarrage des synchronisations d'arrière-plan ciblées par rôle
+        if (user != null && (user.role == 'LIVREUR' || user.role == 'CHAUFFEUR')) {
+          Provider.of<DeliveryProvider>(context, listen: false).startPolling();
+        }
+        Provider.of<NotificationProvider>(context, listen: false).startPolling();
+        AppNotifications.showSuccess(context, "Connexion réussie !");
         if (user != null && user.doitChangerMotDePasse) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const ForceChangePasswordView()),
+            MaterialPageRoute(builder: (context) => ForceChangePasswordView()),
           );
           return;
         }
@@ -52,7 +62,7 @@ class _LoginViewState extends State<LoginView> {
         final userRole = user?.role;
         if (userRole == 'LIVREUR' || userRole == 'CHAUFFEUR') {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const DeliveryListView()),
+            MaterialPageRoute(builder: (context) => DeliveryListView()),
           );
         } else {
           Navigator.of(context).pushReplacement(
@@ -138,6 +148,39 @@ class _LoginViewState extends State<LoginView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          if (widget.sessionExpired || (authProvider.errorMessage != null && authProvider.errorMessage!.toLowerCase().contains("session expirée")))
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 20),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isDark ? const Color(0xFFD97706) : const Color(0xFFF59E0B),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.lock_clock_outlined,
+                                    color: isDark ? const Color(0xFFFDE68A) : const Color(0xFFB45309),
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      "Votre session a expiré pour des raisons de sécurité. Veuillez vous reconnecter pour poursuivre vos opérations.",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
                           Text(
                             themeProvider.tr('login_title'),
                             style: TextStyle(

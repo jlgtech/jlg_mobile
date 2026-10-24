@@ -1,15 +1,19 @@
+import 'package:flutter/material.dart';
+
 class AppConfig {
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   static const String appName = "Transport & Logistic";
   static const String appVersion = "1.0.0";
 
   // =========================================================================
   // BASCULEMENT ULTRA-SIMPLE : Mettre a `true` pour PROD, `false` pour LOCAL
   // =========================================================================
-  static bool isProduction = true;
+  static bool isProduction = false;
 
   // URLs d'API configurées automatiquement
   static const String _prodUrl  = "https://jlgapi.jlgpowerservicessupplies.com/api/v1";
-  static const String _localUrl = "http://10.0.2.2:8085/api/v1"; // Emulateur Android ou http://localhost:8085/api/v1 pour iOS/Web
+  static const String _localUrl = "http://10.0.2.2:8085/api/v1"; // Emulateur Android (ou appareil via adb reverse)
 
   static String get activeBaseUrl => isProduction ? _prodUrl : _localUrl;
 
