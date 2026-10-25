@@ -10,6 +10,8 @@ class AuthStorage {
   static const String _keyUserEmail = "user_email";
   static const String _keyUserRole = "user_role";
   static const String _keyMustChangePassword = "must_change_password";
+  static const String _keyRememberMe = "remember_me";
+  static const String _keySavedEmail = "saved_email";
 
   /// Vérifie si un jeton JWT est structurellement expiré sans nécessiter d'appel réseau
   static bool isTokenExpired(String? token) {
@@ -53,6 +55,7 @@ class AuthStorage {
     required String email,
     required String role,
     bool doitChangerMotDePasse = false,
+    bool rememberMe = true,
   }) async {
     await _storage.write(key: _keyToken, value: token);
     await _storage.write(key: _keyUserId, value: userId);
@@ -61,6 +64,10 @@ class AuthStorage {
     await _storage.write(key: _keyUserRole, value: role);
     await _storage.write(
         key: _keyMustChangePassword, value: doitChangerMotDePasse.toString());
+    await _storage.write(key: _keyRememberMe, value: rememberMe.toString());
+    if (rememberMe) {
+      await _storage.write(key: _keySavedEmail, value: email.trim());
+    }
   }
 
   /// Retourne le jeton d'authentification s'il est encore valide, sinon purge la session
@@ -88,7 +95,37 @@ class AuthStorage {
     return val == 'true';
   }
 
-  static Future<void> clearSession() async {
+  static Future<bool> getRememberMe() async {
+    final val = await _storage.read(key: _keyRememberMe);
+    // Activé par défaut si non spécifié pour le confort des livreurs
+    return val == null || val == 'true';
+  }
+
+  static Future<void> setRememberMe(bool value) async {
+    await _storage.write(key: _keyRememberMe, value: value.toString());
+  }
+
+  static Future<String?> getSavedEmail() async => await _storage.read(key: _keySavedEmail);
+
+  static Future<void> saveSavedEmail(String email) async {
+    await _storage.write(key: _keySavedEmail, value: email.trim());
+  }
+
+  static Future<void> clearSession({bool keepSavedEmail = true}) async {
+    String? savedEmail;
+    String? rememberMe;
+    if (keepSavedEmail) {
+      savedEmail = await _storage.read(key: _keySavedEmail);
+      rememberMe = await _storage.read(key: _keyRememberMe);
+    }
     await _storage.deleteAll();
+    if (keepSavedEmail) {
+      if (savedEmail != null) {
+        await _storage.write(key: _keySavedEmail, value: savedEmail);
+      }
+      if (rememberMe != null) {
+        await _storage.write(key: _keyRememberMe, value: rememberMe);
+      }
+    }
   }
 }

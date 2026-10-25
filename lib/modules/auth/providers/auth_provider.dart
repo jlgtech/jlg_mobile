@@ -80,6 +80,7 @@ class AuthProvider extends ChangeNotifier {
           final user = UserModel.fromJson(userData);
           _currentUser = user;
           _isAuthenticated = true;
+          final rememberMe = await AuthStorage.getRememberMe();
           await AuthStorage.saveSession(
             token: token,
             userId: user.id,
@@ -87,6 +88,7 @@ class AuthProvider extends ChangeNotifier {
             email: user.email,
             role: user.role,
             doitChangerMotDePasse: user.doitChangerMotDePasse,
+            rememberMe: rememberMe,
           );
           _isLoading = false;
           notifyListeners();
@@ -123,7 +125,7 @@ class AuthProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String email, String password, {bool rememberMe = true}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -132,6 +134,7 @@ class AuthProvider extends ChangeNotifier {
       final response = await ApiClient.post('/auth/login-json', {
         'email': email.trim(),
         'password': password,
+        'remember_me': rememberMe,
       });
 
       if (response.statusCode == 200) {
@@ -150,6 +153,7 @@ class AuthProvider extends ChangeNotifier {
           email: user.email,
           role: user.role,
           doitChangerMotDePasse: user.doitChangerMotDePasse,
+          rememberMe: rememberMe,
         );
 
         _isLoading = false;
@@ -194,6 +198,7 @@ class AuthProvider extends ChangeNotifier {
             doitChangerMotDePasse: false,
           );
         }
+        final rememberMe = await AuthStorage.getRememberMe();
         await AuthStorage.saveSession(
           token: (await AuthStorage.getToken()) ?? '',
           userId: _currentUser?.id ?? '',
@@ -201,6 +206,7 @@ class AuthProvider extends ChangeNotifier {
           email: _currentUser?.email ?? '',
           role: _currentUser?.role ?? '',
           doitChangerMotDePasse: false,
+          rememberMe: rememberMe,
         );
         _isLoading = false;
         notifyListeners();
@@ -224,7 +230,7 @@ class AuthProvider extends ChangeNotifier {
       await ApiClient.post('/auth/logout', {});
     } catch (_) {}
 
-    await AuthStorage.clearSession();
+    await AuthStorage.clearSession(keepSavedEmail: true);
     _stopBackgroundServices();
     _isAuthenticated = false;
     _currentUser = null;

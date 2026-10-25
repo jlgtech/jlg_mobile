@@ -33,6 +33,17 @@ void main() {
 
       expect(AuthStorage.isTokenExpired(validToken), isFalse);
     });
+
+    test('isTokenExpired returns false for a 30-day remember-me token', () {
+      // Token remember_me avec expiration de 30 jours
+      final thirtyDaysExp = DateTime.now().add(const Duration(days: 30)).millisecondsSinceEpoch ~/ 1000;
+      final header = base64Url.encode(utf8.encode('{"alg":"HS256","typ":"JWT"}')).replaceAll('=', '');
+      final payload = base64Url.encode(utf8.encode('{"sub":"chauffeur123","exp":$thirtyDaysExp}')).replaceAll('=', '');
+      const signature = 'fakeSignature30d';
+      final rememberMeToken = '$header.$payload.$signature';
+
+      expect(AuthStorage.isTokenExpired(rememberMeToken), isFalse);
+    });
   });
 
   group('ApiClient Session Expiration 401 Tests', () {

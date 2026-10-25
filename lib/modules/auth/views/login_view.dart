@@ -9,6 +9,7 @@ import '../../deliveries/views/delivery_list_view.dart';
 import '../../notifications/providers/notification_provider.dart';
 import '../providers/auth_provider.dart';
 import 'force_change_password_view.dart';
+import '../../../core/storage/auth_storage.dart';
 
 class LoginView extends StatefulWidget {
   final bool sessionExpired;
@@ -27,6 +28,26 @@ class _LoginViewState extends State<LoginView> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _rememberMe = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final savedEmail = await AuthStorage.getSavedEmail();
+    final rememberMe = await AuthStorage.getRememberMe();
+    if (mounted) {
+      setState(() {
+        _rememberMe = rememberMe;
+        if (savedEmail != null && savedEmail.isNotEmpty) {
+          _emailController.text = savedEmail;
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -41,10 +62,15 @@ class _LoginViewState extends State<LoginView> {
       final success = await authProvider.login(
         _emailController.text,
         _passwordController.text,
+        rememberMe: _rememberMe,
       );
 
       if (!mounted) return;
       if (success) {
+        await AuthStorage.setRememberMe(_rememberMe);
+        if (_rememberMe) {
+          await AuthStorage.saveSavedEmail(_emailController.text);
+        }
         final user = authProvider.currentUser;
         // Démarrage des synchronisations d'arrière-plan ciblées par rôle
         if (user != null && (user.role == 'LIVREUR' || user.role == 'CHAUFFEUR')) {
@@ -233,7 +259,63 @@ class _LoginViewState extends State<LoginView> {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 12),
+
+                          // Option Rester Connecte
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _rememberMe = !_rememberMe;
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: Checkbox(
+                                      value: _rememberMe,
+                                      activeColor: isDark ? AppTheme.accentMint : AppTheme.primaryEmerald,
+                                      checkColor: isDark ? const Color(0xFF0B0F19) : Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _rememberMe = val ?? true;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Rester connecté",
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.titleColor(context),
+                                          ),
+                                        ),
+                                        Text(
+                                          "Maintient la session active pendant les tournées",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppTheme.mutedColor(context),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
 
                           // Submit Button
                           SizedBox(
