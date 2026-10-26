@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:jlg_mobile/modules/notifications/models/notification_model.dart';
 import 'package:jlg_mobile/modules/notifications/providers/notification_provider.dart';
+import 'package:jlg_mobile/modules/notifications/widgets/notification_detail_modal.dart';
 import 'package:jlg_mobile/widgets/buttons/notification_bell_button.dart';
 
 void main() {
@@ -123,6 +124,45 @@ void main() {
       // We test that the bell icon exists
       expect(find.byType(NotificationBellButton), findsOneWidget);
       expect(find.byIcon(Icons.notifications_outlined), findsOneWidget);
+    });
+
+    testWidgets('NotificationDetailModal renders properly without crash', (tester) async {
+      final notif = NotificationModel(
+        id: 'n-detail',
+        titre: 'Alerte Commande',
+        message: 'Votre commande a été traitée avec succès.',
+        typeNotification: 'LIVRAISON',
+        severite: 'INFO',
+        estLu: false,
+        creeLe: DateTime(2026, 10, 26, 14, 30),
+      );
+      final provider = NotificationProvider();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    NotificationDetailModal.show(
+                      context,
+                      notification: notif,
+                      provider: provider,
+                    );
+                  },
+                  child: const Text('Open Modal'),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Modal'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Alerte Commande'), findsOneWidget);
     });
   });
 }

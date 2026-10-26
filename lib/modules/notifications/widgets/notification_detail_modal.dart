@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../models/notification_model.dart';
 import '../providers/notification_provider.dart';
@@ -32,6 +31,15 @@ class NotificationDetailModal extends StatelessWidget {
         provider: provider,
       ),
     );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final day = dt.day.toString().padLeft(2, '0');
+    final month = dt.month.toString().padLeft(2, '0');
+    final year = dt.year.toString();
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '$day/$month/$year à $hour:$minute';
   }
 
   @override
@@ -182,7 +190,7 @@ class NotificationDetailModal extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        DateFormat('dd MMMM yyyy à HH:mm', 'fr_FR').format(notification.creeLe!),
+                        _formatDateTime(notification.creeLe!),
                         style: TextStyle(
                           fontSize: 12,
                           color: AppTheme.mutedColor(context),
@@ -203,7 +211,7 @@ class NotificationDetailModal extends StatelessWidget {
                 ),
 
               // Corps du message
-              Expanded(
+              Flexible(
                 child: SingleChildScrollView(
                   child: Container(
                     padding: const EdgeInsets.all(16),
