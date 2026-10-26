@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../../core/network/api_client.dart';
 import '../models/delivery_model.dart';
 import '../../../core/theme/app_theme.dart';
 
@@ -35,7 +37,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
   String _modeRelivraison = 'RELIVRAISON_DEMANDEE'; // 'RELIVRAISON_DEMANDEE' ou 'NOUVELLE_COMMANDE'
   bool _isSubmitting = false;
 
-  static const List<String> _commonReasons = [
+  static const List<String> _fallbackReasons = [
     'Produit Défectueux (Fuite / Défaut usine)',
     'Sachet ou Bouteille Percé(e) / Cassé(e)',
     'Bouchon ou Capsule Endommagé(e)',
@@ -45,16 +47,41 @@ class _DisputeDialogState extends State<DisputeDialog> {
     'Refus de Réception par le Client',
   ];
 
+  late List<String> _reasons;
+
   @override
   void initState() {
     super.initState();
-    _selectedReason = _commonReasons.first;
+    _reasons = List<String>.from(_fallbackReasons);
+    _selectedReason = _reasons.first;
 
     final items = widget.order?.items ?? [];
     if (items.isNotEmpty) {
       _selectedItem = items.first;
       _quantiteDefectueuse = min(1, _selectedItem!.quantiteCommandee > 0 ? _selectedItem!.quantiteCommandee : 1);
     }
+
+    _loadReasons();
+  }
+
+  Future<void> _loadReasons() async {
+    try {
+      final res = await ApiClient.get('/disputes/reasons');
+      if (res.statusCode == 200) {
+        final dynamic data = jsonDecode(res.body);
+        if (data is List && data.isNotEmpty) {
+          final loaded = data.map((e) => e.toString()).toList();
+          if (mounted && loaded.isNotEmpty) {
+            setState(() {
+              _reasons = loaded;
+              if (!_reasons.contains(_selectedReason)) {
+                _selectedReason = _reasons.first;
+              }
+            });
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -300,7 +327,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
-                    value: _commonReasons.contains(_selectedReason) ? _selectedReason : _commonReasons.first,
+                    value: _reasons.contains(_selectedReason) ? _selectedReason : _reasons.first,
                     isExpanded: true,
                     dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                     style: TextStyle(
@@ -308,7 +335,7 @@ class _DisputeDialogState extends State<DisputeDialog> {
                       fontWeight: FontWeight.w600,
                       color: AppTheme.titleColor(context),
                     ),
-                    items: _commonReasons.map((String reason) {
+                    items: _reasons.map((String reason) {
                       return DropdownMenuItem<String>(
                         value: reason,
                         child: Text(reason, style: TextStyle(color: AppTheme.titleColor(context))),
