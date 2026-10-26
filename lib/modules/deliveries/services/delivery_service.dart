@@ -201,5 +201,28 @@ class DeliveryService {
       return (success: false, errorMessage: ErrorSanitizer.extractErrorMessage(e));
     }
   }
+
+  /// Déclarer la récupération des emballages vides / consignes lors de la livraison
+  static Future<({bool success, String? errorMessage})> declareConsignes({
+    required String orderId,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    try {
+      final body = {
+        'commande_id': orderId,
+        'items': items,
+      };
+      final response = await ApiClient.post('/consignes/declarations', body);
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return (success: true, errorMessage: null);
+      }
+      return (
+        success: false,
+        errorMessage: ErrorSanitizer.parseHttpResponseError(response),
+      );
+    } catch (e) {
+      return (success: false, errorMessage: ErrorSanitizer.extractErrorMessage(e));
+    }
+  }
 }
 

@@ -5,6 +5,8 @@ class DeliveryItem {
   final int quantiteOfferte;
   final double prixUnitaire;
   final double totalLigne;
+  final bool exigeRetourEmballage;
+  final String? nomEmballageRecupere;
 
   DeliveryItem({
     required this.articleId,
@@ -13,19 +15,29 @@ class DeliveryItem {
     required this.quantiteOfferte,
     required this.prixUnitaire,
     required this.totalLigne,
+    this.exigeRetourEmballage = false,
+    this.nomEmballageRecupere,
   });
 
   factory DeliveryItem.fromJson(Map<String, dynamic> json) {
     final pu = double.tryParse((json['prix_unitaire_facture'] ?? json['prix_unitaire'] ?? '0').toString()) ?? 0.0;
     final qte = (json['quantite_commandee'] is num) ? (json['quantite_commandee'] as num).toInt() : 1;
     final total = double.tryParse((json['total_ligne'] ?? (pu * qte)).toString()) ?? (pu * qte);
+    
+    // Détection dynamique ou de compatibilité pour les articles 5 Gallons
+    final desig = json['article_designation'] ?? json['designation'] ?? json['article']?['designation'] ?? 'Produit';
+    final isExplicitConsigne = json['exige_retour_emballage'] == true || json['article']?['exige_retour_emballage'] == true;
+    final isAutoConsigne = desig.toString().toLowerCase().contains('5 gallon') || desig.toString().toLowerCase().contains('bonbonne');
+
     return DeliveryItem(
       articleId: json['article_id']?.toString() ?? '',
-      designation: json['article_designation'] ?? json['designation'] ?? json['article']?['designation'] ?? 'Produit',
+      designation: desig,
       quantiteCommandee: qte,
       quantiteOfferte: (json['quantite_offerte'] is num) ? (json['quantite_offerte'] as num).toInt() : 0,
       prixUnitaire: pu,
       totalLigne: total,
+      exigeRetourEmballage: isExplicitConsigne || isAutoConsigne,
+      nomEmballageRecupere: json['nom_emballage_recupere'] ?? json['article']?['nom_emballage_recupere'] ?? (isAutoConsigne ? 'Bonbonne vide 5G' : null),
     );
   }
 
@@ -37,6 +49,8 @@ class DeliveryItem {
       'quantite_offerte': quantiteOfferte,
       'prix_unitaire': prixUnitaire,
       'total_ligne': totalLigne,
+      'exige_retour_emballage': exigeRetourEmballage,
+      'nom_emballage_recupere': nomEmballageRecupere,
     };
   }
 }

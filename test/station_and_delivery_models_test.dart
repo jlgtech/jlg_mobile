@@ -179,6 +179,27 @@ void main() {
       expect(unvalidatedOrder.isGpsValidated, false);
     });
 
+    test('DeliveryItem parses consigne attributes correctly', () {
+      final json = {
+        'id': 'line-1',
+        'article_id': 'art-5gal',
+        'designation': 'Bonbonne Eau Purifiee 5 Gallons',
+        'quantite_commandee': 20,
+        'quantite_offerte': 0,
+        'prix_unitaire': 150.0,
+        'total_ligne': 3000.0,
+        'exige_retour_emballage': true,
+        'nom_emballage_recupere': 'Bonbonne vide 5G',
+      };
+
+      final item = DeliveryItem.fromJson(json);
+
+      expect(item.articleId, 'art-5gal');
+      expect(item.quantiteCommandee, 20);
+      expect(item.exigeRetourEmballage, true);
+      expect(item.nomEmballageRecupere, 'Bonbonne vide 5G');
+    });
+
     test('DeliveryOrder isUnassigned correctly identifies open pool orders', () {
       final unassignedOrder = DeliveryOrder.fromJson({
         'id': 'cmd-unassigned-1',

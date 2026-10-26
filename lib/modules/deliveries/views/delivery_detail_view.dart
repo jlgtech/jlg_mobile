@@ -4,6 +4,7 @@ import '../models/delivery_model.dart';
 import '../providers/delivery_provider.dart';
 import '../widgets/dispute_dialog.dart';
 import '../widgets/address_map_modal.dart';
+import '../services/delivery_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
@@ -19,6 +20,28 @@ class DeliveryDetailView extends StatefulWidget {
 
 class _DeliveryDetailViewState extends State<DeliveryDetailView> {
   bool _isProcessing = false;
+  final Map<String, int> _consignesRecuperees = {};
+  final TextEditingController _consignesNotesController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _initConsignes();
+  }
+
+  void _initConsignes() {
+    for (final it in widget.order.items) {
+      if (it.exigeRetourEmballage) {
+        _consignesRecuperees[it.articleId] = it.quantiteCommandee;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _consignesNotesController.dispose();
+    super.dispose();
+  }
 
   void _handleStart() async {
     setState(() => _isProcessing = true);
@@ -47,6 +70,32 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
   void _handleComplete() async {
     setState(() => _isProcessing = true);
     final provider = Provider.of<DeliveryProvider>(context, listen: false);
+
+    // Si la commande comporte des articles consignés, enregistrer les contenants récupérés
+    final hasConsignes = widget.order.items.any((it) => it.exigeRetourEmballage);
+    if (hasConsignes) {
+      final consigneItems = widget.order.items
+          .where((it) => it.exigeRetourEmballage)
+          .map((it) => {
+                'article_id': it.articleId,
+                'nom_emballage': it.nomEmballageRecupere ?? 'Bonbonne vide 5G',
+                'quantite_livree': it.quantiteCommandee,
+                'quantite_recuperee': _consignesRecuperees[it.articleId] ?? it.quantiteCommandee,
+                'observations': _consignesNotesController.text.trim().isNotEmpty
+                    ? _consignesNotesController.text.trim()
+                    : null,
+              })
+          .toList();
+
+      if (consigneItems.isNotEmpty) {
+        try {
+          await DeliveryService.declareConsignes(
+            orderId: widget.order.id,
+            items: consigneItems,
+          );
+        } catch (_) {}
+      }
+    }
 
     final success = await provider.completeDelivery(
       widget.order.id,
@@ -769,6 +818,9 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                               _buildItemsSummary(context, currentOrder),
                               const SizedBox(height: 14),
 
+                              // Récupération des Emballages Vides
+                              _buildConsignesSection(context, currentOrder),
+
                               // Bouton Terminer Conforme
                               ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
@@ -1163,6 +1215,233 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                   ],
                 ),
               )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConsignesSection(BuildContext context, DeliveryOrder order) {
+    final consigneItems = order.items.where((it) => it.exigeRetourEmballage).toList();
+    if (consigneItems.isEmpty) return const SizedBox.shrink();
+
+    final isDark = AppTheme.isDark(context);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFF86EFAC),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF047857).withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.recycling_rounded,
+                  color: Color(0xFF047857),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Retour d'emballages consignes",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        color: Color(0xFF047857),
+                      ),
+                    ),
+                    Text(
+                      "Indiquer le nombre de contenants vides recuperes",
+                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
+          ...consigneItems.map((it) {
+            final qtyRecuperee = _consignesRecuperees[it.articleId] ?? it.quantiteCommandee;
+            final ecart = qtyRecuperee - it.quantiteCommandee;
+
+            Color ecartColor;
+            String ecartLabel;
+            IconData ecartIcon;
+
+            if (ecart == 0) {
+              ecartColor = const Color(0xFF047857);
+              ecartLabel = "Equilibre parfait (0 ecart)";
+              ecartIcon = Icons.check_circle_rounded;
+            } else if (ecart < 0) {
+              ecartColor = Colors.orange.shade800;
+              ecartLabel = "Deficit client : ${ecart.abs()} vide(s) manquant(s)";
+              ecartIcon = Icons.warning_amber_rounded;
+            } else {
+              ecartColor = Colors.blue.shade700;
+              ecartLabel = "Surplus client : +$ecart vide(s) rendu(s)";
+              ecartIcon = Icons.add_circle_outline_rounded;
+            }
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark ? const Color(0xFF334155) : Colors.grey.shade200,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              it.nomEmballageRecupere ?? "Emballage consignable",
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            Text(
+                              "Pour ${it.designation}",
+                              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          "Livre : ${it.quantiteCommandee}",
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black87),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Quantite vide recue :",
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.remove_circle_outline, size: 24),
+                            color: Colors.red.shade600,
+                            onPressed: qtyRecuperee > 0
+                                ? () {
+                                    setState(() {
+                                      _consignesRecuperees[it.articleId] = qtyRecuperee - 1;
+                                    });
+                                  }
+                                : null,
+                          ),
+                          Container(
+                            constraints: const BoxConstraints(minWidth: 42),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E293B) : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isDark ? const Color(0xFF475569) : Colors.grey.shade300,
+                              ),
+                            ),
+                            child: Text(
+                              "$qtyRecuperee",
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.add_circle_outline, size: 24),
+                            color: const Color(0xFF047857),
+                            onPressed: () {
+                              setState(() {
+                                _consignesRecuperees[it.articleId] = qtyRecuperee + 1;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: ecartColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: ecartColor.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(ecartIcon, size: 14, color: ecartColor),
+                        const SizedBox(width: 6),
+                        Text(
+                          ecartLabel,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: ecartColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _consignesNotesController,
+            maxLines: 2,
+            style: const TextStyle(fontSize: 12),
+            decoration: InputDecoration(
+              labelText: "Observation emballages (optionnel)",
+              hintText: "Ex : Client a garde 2 bonbonnes encore pleines...",
+              hintStyle: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              isDense: true,
+            ),
+          ),
         ],
       ),
     );
