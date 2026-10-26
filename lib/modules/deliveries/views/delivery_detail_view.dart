@@ -1260,7 +1260,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Retour d'emballages consignes",
+                      "Retour de vides (Bonbonnes)",
                       style: TextStyle(
                         fontWeight: FontWeight.w900,
                         fontSize: 13,
@@ -1268,7 +1268,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                       ),
                     ),
                     Text(
-                      "Indiquer le nombre de contenants vides recuperes",
+                      "Nombre de bonbonnes ou contenants vides recuperes",
                       style: TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                   ],
@@ -1322,7 +1322,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              it.nomEmballageRecupere ?? "Emballage consignable",
+                              it.nomEmballageRecupere ?? "Bonbonne vide 5G",
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                             Text(
@@ -1434,7 +1434,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
             maxLines: 2,
             style: const TextStyle(fontSize: 12),
             decoration: InputDecoration(
-              labelText: "Observation emballages (optionnel)",
+              labelText: "Observation sur les vides (optionnel)",
               hintText: "Ex : Client a garde 2 bonbonnes encore pleines...",
               hintStyle: TextStyle(fontSize: 11, color: Colors.grey.shade400),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
