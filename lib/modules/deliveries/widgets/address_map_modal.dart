@@ -11,10 +11,12 @@ import '../../../core/services/location_service.dart';
 
 class AddressMapModal extends StatefulWidget {
   final DeliveryOrder order;
+  final bool? isReadOnly;
 
   const AddressMapModal({
     super.key,
     required this.order,
+    this.isReadOnly,
   });
 
   @override
@@ -24,6 +26,7 @@ class AddressMapModal extends StatefulWidget {
 class _AddressMapModalState extends State<AddressMapModal> {
   late MapController _mapController;
   late LatLng _currentPosition;
+  late bool _isReadOnly;
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _postalCodeController = TextEditingController();
   final TextEditingController _communeController = TextEditingController();
@@ -48,6 +51,9 @@ class _AddressMapModalState extends State<AddressMapModal> {
     final bool hasValidOrderGps = existingLat != null &&
         existingLng != null &&
         LocationService.isWithinHaitiBounds(existingLat, existingLng);
+
+    // Par defaut, mode consultation si les coordonnees sont valides et ne requierent pas de capture obligatoire
+    _isReadOnly = widget.isReadOnly ?? (hasValidOrderGps && !widget.order.requiresGpsValidation);
 
     final double initialLat = hasValidOrderGps ? existingLat : AppConfig.fallbackLatitude;
     final double initialLng = hasValidOrderGps ? existingLng : AppConfig.fallbackLongitude;
@@ -167,6 +173,7 @@ class _AddressMapModalState extends State<AddressMapModal> {
 
   /// Pointeur interactif sur clic direct de la carte
   void _onMapTapped(TapPosition tapPosition, LatLng point) {
+    if (_isReadOnly) return; // Mode consultation : le marqueur reste fixe sur le client
     if (!LocationService.isWithinHaitiBounds(point.latitude, point.longitude)) {
       return;
     }
@@ -241,6 +248,7 @@ class _AddressMapModalState extends State<AddressMapModal> {
   }
 
   void _onPositionChanged(MapCamera camera, bool hasGesture) {
+    if (_isReadOnly) return; // Mode consultation : déplacer la vue ne modifie pas la position du client
     if (!hasGesture) return;
     setState(() {
       _currentPosition = camera.center;
@@ -348,12 +356,14 @@ class _AddressMapModalState extends State<AddressMapModal> {
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Localisation Réelle & Code Postal",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+              Text(
+                _isReadOnly ? "Position du Client sur la Carte" : "Localisation Réelle & Code Postal",
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
               ),
               Text(
-                "Vérification certifiée pour Haïti ($currentCommune — $currentPostalCode)",
+                _isReadOnly
+                    ? "${widget.order.clientNom} ($currentCommune — $currentPostalCode)"
+                    : "Vérification certifiée pour Haïti ($currentCommune — $currentPostalCode)",
                 style: TextStyle(fontSize: 11, color: isDark ? AppTheme.accentSky : Colors.white70),
               ),
             ],
@@ -379,13 +389,15 @@ class _AddressMapModalState extends State<AddressMapModal> {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: _gpsCaptured ? const Color(0xFF047857).withValues(alpha: 0.15) : Colors.orange.withValues(alpha: 0.15),
+                      color: (_isReadOnly || _gpsCaptured)
+                          ? const Color(0xFF047857).withValues(alpha: 0.15)
+                          : Colors.orange.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      _gpsCaptured ? Icons.verified : Icons.warning_amber_rounded,
+                      (_isReadOnly || _gpsCaptured) ? Icons.verified : Icons.warning_amber_rounded,
                       size: 16,
-                      color: _gpsCaptured ? const Color(0xFF047857) : Colors.orange.shade800,
+                      color: (_isReadOnly || _gpsCaptured) ? const Color(0xFF047857) : Colors.orange.shade800,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -394,25 +406,34 @@ class _AddressMapModalState extends State<AddressMapModal> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _gpsCaptured
-                              ? "GPS Téléphone certifié : $currentCommune ($currentPostalCode)"
-                              : "Position approximative — Cliquez sur 'Capturer GPS'",
+                          _isReadOnly
+                              ? "Position GPS client certifiée : $currentCommune ($currentPostalCode)"
+                              : (_gpsCaptured
+                                  ? "GPS Téléphone certifié : $currentCommune ($currentPostalCode)"
+                                  : "Position approximative — Cliquez sur 'Capturer GPS'"),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: _gpsCaptured ? const Color(0xFF047857) : Colors.orange.shade900,
+                            color: (_isReadOnly || _gpsCaptured) ? const Color(0xFF047857) : Colors.orange.shade900,
                           ),
                         ),
-                        if (_currentReverseInfo?.quartier != null && _currentReverseInfo!.quartier!.isNotEmpty)
+                        if (_isReadOnly)
                           Text(
-                            "Secteur : ${_currentReverseInfo!.quartier!}",
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal),
-                          ),
-                        if (_accuracyMeters != null)
-                          Text(
-                            "Précision satellite : ± ${_accuracyMeters!.toStringAsFixed(1)} mètres",
-                            style: TextStyle(fontSize: 10, color: AppTheme.mutedColor(context)),
-                          ),
+                            "Adresse vérifiée et enregistrée pour la livraison",
+                            style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(context)),
+                          )
+                        else ...[
+                          if (_currentReverseInfo?.quartier != null && _currentReverseInfo!.quartier!.isNotEmpty)
+                            Text(
+                              "Secteur : ${_currentReverseInfo!.quartier!}",
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal),
+                            ),
+                          if (_accuracyMeters != null)
+                            Text(
+                              "Précision satellite : ± ${_accuracyMeters!.toStringAsFixed(1)} mètres",
+                              style: TextStyle(fontSize: 10, color: AppTheme.mutedColor(context)),
+                            ),
+                        ],
                       ],
                     ),
                   ),
@@ -451,7 +472,7 @@ class _AddressMapModalState extends State<AddressMapModal> {
                             height: 54,
                             child: Container(
                               decoration: BoxDecoration(
-                                color: _gpsCaptured ? const Color(0xFF047857) : AppTheme.primaryRoyal,
+                                color: (_isReadOnly || _gpsCaptured) ? const Color(0xFF047857) : AppTheme.primaryRoyal,
                                 shape: BoxShape.circle,
                                 boxShadow: const [
                                   BoxShadow(
@@ -473,24 +494,36 @@ class _AddressMapModalState extends State<AddressMapModal> {
                     ],
                   ),
 
-                  // Bouton flottant de capture GPS reelle
+                  // Bouton flottant : Recentrer sur le client (mode consultation) OU Capturer GPS (mode edition)
                   Positioned(
                     top: 14,
                     left: 14,
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _gpsCaptured ? const Color(0xFF047857) : AppTheme.primaryRoyal,
+                        backgroundColor: _isReadOnly
+                            ? AppTheme.primaryRoyal
+                            : (_gpsCaptured ? const Color(0xFF047857) : AppTheme.primaryRoyal),
                         foregroundColor: Colors.white,
                         elevation: 4,
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                       ),
-                      onPressed: _isLocating ? null : _acquireGpsLocation,
-                      icon: _isLocating
-                          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Icon(Icons.gps_fixed, size: 16),
+                      onPressed: _isReadOnly
+                          ? () {
+                              try {
+                                _mapController.move(_currentPosition, 16.5);
+                              } catch (_) {}
+                            }
+                          : (_isLocating ? null : _acquireGpsLocation),
+                      icon: _isReadOnly
+                          ? const Icon(Icons.center_focus_strong, size: 16)
+                          : (_isLocating
+                              ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.gps_fixed, size: 16)),
                       label: Text(
-                        _isLocating ? "Acquisition GPS..." : (_gpsCaptured ? "GPS Réel Actif" : "Capturer GPS"),
+                        _isReadOnly
+                            ? "Recentrer sur le client"
+                            : (_isLocating ? "Acquisition GPS..." : (_gpsCaptured ? "GPS Réel Actif" : "Capturer GPS")),
                         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -515,7 +548,7 @@ class _AddressMapModalState extends State<AddressMapModal> {
                           Icon(
                             Icons.my_location,
                             size: 14,
-                            color: _gpsCaptured ? const Color(0xFF047857) : AppTheme.primaryRoyal,
+                            color: (_isReadOnly || _gpsCaptured) ? const Color(0xFF047857) : AppTheme.primaryRoyal,
                           ),
                           const SizedBox(width: 6),
                           Text(
@@ -534,7 +567,7 @@ class _AddressMapModalState extends State<AddressMapModal> {
               ),
             ),
 
-            // Formulaire bas de page avec verification de code postal
+            // Panneau bas de page : Fiche de consultation OU Formulaire d'edition
             Container(
               padding: EdgeInsets.fromLTRB(18, 14, 18, MediaQuery.of(context).padding.bottom + 16),
               decoration: BoxDecoration(
@@ -548,111 +581,250 @@ class _AddressMapModalState extends State<AddressMapModal> {
                   ),
                 ],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Ligne Commune & Code Postal
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: TextField(
-                          controller: _communeController,
-                          style: TextStyle(color: AppTheme.titleColor(context), fontSize: 13, fontWeight: FontWeight.bold),
-                          decoration: InputDecoration(
-                            labelText: "Commune Haïti *",
-                            prefixIcon: const Icon(Icons.location_city, size: 18),
-                            isDense: true,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            filled: true,
-                            fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
+              child: _isReadOnly
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Fiche de localisation validée
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppTheme.borderColor(context)),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 1,
-                        child: TextField(
-                          controller: _postalCodeController,
-                          style: TextStyle(
-                            color: const Color(0xFF047857),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w900,
-                          ),
-                          decoration: InputDecoration(
-                            labelText: "Code Postal *",
-                            prefixIcon: const Icon(Icons.markunread_mailbox_outlined, size: 18),
-                            isDense: true,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            filled: true,
-                            fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Champ Adresse exacte avec synchronisation et recentrage de la carte
-                  TextField(
-                    controller: _addressController,
-                    maxLines: 2,
-                    style: TextStyle(color: AppTheme.titleColor(context), fontSize: 13),
-                    decoration: InputDecoration(
-                      labelText: "Adresse exacte & Repères visuels *",
-                      hintText: "Ex: Rue Lamarre, Pétion-Ville, près de l'église...",
-                      prefixIcon: const Icon(Icons.edit_location_alt_outlined, size: 20),
-                      suffixIcon: Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: _isSearchingAddress
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: Center(
-                                  child: SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF047857).withValues(alpha: 0.12),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.check_circle_rounded, color: Color(0xFF047857), size: 18),
                                   ),
-                                ),
-                              )
-                            : IconButton(
-                                icon: const Icon(Icons.travel_explore, size: 22),
-                                color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
-                                tooltip: "Recentrer la carte sur cette adresse",
-                                onPressed: _searchAddressOnMap,
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          widget.order.clientNom,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 14,
+                                            color: AppTheme.titleColor(context),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const Text(
+                                          "Position GPS certifiée pour la livraison",
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Color(0xFF047857),
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    tooltip: "Recentrer la carte sur le client",
+                                    icon: const Icon(Icons.my_location_rounded, color: AppTheme.primaryRoyal, size: 20),
+                                    onPressed: () {
+                                      try {
+                                        _mapController.move(_currentPosition, 17.0);
+                                      } catch (_) {}
+                                    },
+                                  ),
+                                ],
                               ),
-                      ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                      filled: true,
-                      fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
+                              const Divider(height: 16),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(Icons.location_on_outlined, size: 16, color: isDark ? AppTheme.accentMint : AppTheme.primaryRoyal),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      widget.order.adresseLivraison.isNotEmpty
+                                          ? widget.order.adresseLivraison
+                                          : "$currentCommune ($currentPostalCode)",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppTheme.titleColor(context),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(Icons.gps_fixed, size: 13, color: AppTheme.mutedColor(context)),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    "Coordonnées GPS : ${_currentPosition.latitude.toStringAsFixed(5)}, ${_currentPosition.longitude.toStringAsFixed(5)}",
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.mutedColor(context),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  side: BorderSide(color: AppTheme.borderColor(context)),
+                                ),
+                                icon: const Icon(Icons.edit_location_alt_outlined, size: 16),
+                                label: const Text("Corriger position", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                onPressed: () {
+                                  setState(() {
+                                    _isReadOnly = false;
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryRoyal,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  elevation: 0,
+                                ),
+                                icon: const Icon(Icons.close_rounded, size: 18),
+                                label: const Text("Fermer la carte", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Ligne Commune & Code Postal
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: _communeController,
+                                style: TextStyle(color: AppTheme.titleColor(context), fontSize: 13, fontWeight: FontWeight.bold),
+                                decoration: InputDecoration(
+                                  labelText: "Commune Haïti *",
+                                  prefixIcon: const Icon(Icons.location_city, size: 18),
+                                  isDense: true,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  filled: true,
+                                  fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              flex: 1,
+                              child: TextField(
+                                controller: _postalCodeController,
+                                style: const TextStyle(
+                                  color: Color(0xFF047857),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText: "Code Postal *",
+                                  prefixIcon: const Icon(Icons.markunread_mailbox_outlined, size: 18),
+                                  isDense: true,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  filled: true,
+                                  fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
 
-                  // Bouton de confirmation
-                  SizedBox(
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _gpsCaptured ? const Color(0xFF047857) : AppTheme.primaryRoyal,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        elevation: 2,
-                      ),
-                      onPressed: _isSaving ? null : _onSaveAddress,
-                      icon: _isSaving
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Icon(Icons.check_circle_outline, size: 20),
-                      label: Text(
-                        _isSaving ? "Validation en cours..." : "Confirmer l'Adresse & GPS pour le Client",
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
-                      ),
+                        // Champ Adresse exacte avec synchronisation et recentrage de la carte
+                        TextField(
+                          controller: _addressController,
+                          maxLines: 2,
+                          style: TextStyle(color: AppTheme.titleColor(context), fontSize: 13),
+                          decoration: InputDecoration(
+                            labelText: "Adresse exacte & Repères visuels *",
+                            hintText: "Ex: Rue Lamarre, Pétion-Ville, près de l'église...",
+                            prefixIcon: const Icon(Icons.edit_location_alt_outlined, size: 20),
+                            suffixIcon: Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: _isSearchingAddress
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: Center(
+                                        child: SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        ),
+                                      ),
+                                    )
+                                  : IconButton(
+                                      icon: const Icon(Icons.travel_explore, size: 22),
+                                      color: isDark ? AppTheme.accentSky : AppTheme.primaryRoyal,
+                                      tooltip: "Recentrer la carte sur cette adresse",
+                                      onPressed: _searchAddressOnMap,
+                                    ),
+                            ),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                            filled: true,
+                            fillColor: isDark ? const Color(0xFF0F172A) : Colors.grey.shade50,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Bouton de confirmation
+                        SizedBox(
+                          height: 48,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _gpsCaptured ? const Color(0xFF047857) : AppTheme.primaryRoyal,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 2,
+                            ),
+                            onPressed: _isSaving ? null : _onSaveAddress,
+                            icon: _isSaving
+                                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : const Icon(Icons.check_circle_outline, size: 20),
+                            label: Text(
+                              _isSaving ? "Validation en cours..." : "Confirmer l'Adresse & GPS pour le Client",
+                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),

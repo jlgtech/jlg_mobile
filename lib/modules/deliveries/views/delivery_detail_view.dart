@@ -343,7 +343,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     );
   }
 
-  void _openAddressValidationModal([DeliveryOrder? customOrder]) async {
+  void _openAddressValidationModal([DeliveryOrder? customOrder, bool isReadOnly = false]) async {
     final provider = Provider.of<DeliveryProvider>(context, listen: false);
     final orderToUse = customOrder ?? provider.orders.firstWhere(
       (o) => o.id == widget.order.id,
@@ -351,7 +351,10 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     );
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AddressMapModal(order: orderToUse),
+      builder: (context) => AddressMapModal(
+        order: orderToUse,
+        isReadOnly: isReadOnly,
+      ),
     );
     if (result == true && mounted) {
       Provider.of<DeliveryProvider>(context, listen: false).fetchOrders(force: true);
@@ -791,7 +794,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                               ),
                               icon: const Icon(Icons.my_location_rounded, size: 20),
                               label: const Text("Capturer position GPS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              onPressed: _openAddressValidationModal,
+                              onPressed: () => _openAddressValidationModal(null, false),
                             ),
                             const SizedBox(height: 10),
                             Container(
@@ -1143,7 +1146,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                             ),
                             const SizedBox(width: 8),
                             InkWell(
-                              onTap: () => _openAddressValidationModal(order),
+                              onTap: () => _openAddressValidationModal(order, true),
                               borderRadius: BorderRadius.circular(4),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
