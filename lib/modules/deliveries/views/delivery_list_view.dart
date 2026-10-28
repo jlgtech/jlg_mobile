@@ -661,11 +661,17 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                       inProgress ? "Continuer la course" : "Débuter la course",
                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
                     ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => DeliveryDetailView(order: order)),
-                      );
+                    onPressed: () async {
+                      if (!inProgress) {
+                        final provider = Provider.of<DeliveryProvider>(context, listen: false);
+                        await provider.startDelivery(order.id);
+                      }
+                      if (context.mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => DeliveryDetailView(order: order)),
+                        );
+                      }
                     },
                   ),
                 ),

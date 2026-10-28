@@ -125,28 +125,7 @@ class OfflineStorage {
     final orders = await loadOrders();
     final updated = orders.map((o) {
       if (o.id == orderId) {
-        return DeliveryOrder(
-          id: o.id,
-          code: o.code,
-          clientNom: o.clientNom,
-          clientTel: o.clientTel,
-          clientEmail: o.clientEmail,
-          adresseLivraison: o.adresseLivraison,
-          modePaiement: o.modePaiement,
-          precisionPaiement: o.precisionPaiement,
-          montantTotal: o.montantTotal,
-          statut: newStatus,
-          dateCreation: o.dateCreation,
-          items: o.items,
-          latitude: o.latitude,
-          longitude: o.longitude,
-          estRetraitSurPlace: o.estRetraitSurPlace,
-          estPayee: o.estPayee,
-          payeeLe: o.payeeLe,
-          encaissePar: o.encaissePar,
-          confirmationGpsRequise: o.confirmationGpsRequise,
-          premiereLivraisonAdresse: o.premiereLivraisonAdresse,
-        );
+        return o.copyWith(statut: newStatus);
       }
       return o;
     }).toList();

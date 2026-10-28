@@ -218,6 +218,33 @@ void main() {
       expect(assignedOrder.chauffeurId, 'driver-456');
     });
 
+    test('DeliveryOrder copyWith preserves attributes and updates status correctly', () {
+      final order = DeliveryOrder(
+        id: 'cmd-copy-1',
+        code: 'CMD-001',
+        clientNom: 'Jean Dupont',
+        clientTel: '+509 3000 0000',
+        clientEmail: 'jean@test.com',
+        adresseLivraison: 'Pétion-Ville',
+        modePaiement: 'ESPECES',
+        montantTotal: 2500.0,
+        statut: 'VALIDEE',
+        chauffeurId: 'driver-007',
+        estVenteACredit: false,
+        confirmationGpsRequise: true,
+        dateCreation: DateTime(2026, 1, 1),
+        items: [],
+      );
+
+      final updated = order.copyWith(statut: 'EN_COURS_DE_LIVRAISON');
+      expect(updated.id, 'cmd-copy-1');
+      expect(updated.code, 'CMD-001');
+      expect(updated.statut, 'EN_COURS_DE_LIVRAISON');
+      expect(updated.chauffeurId, 'driver-007');
+      expect(updated.isUnassigned, false);
+      expect(updated.clientNom, 'Jean Dupont');
+    });
+
     testWidgets('DisputeDialog renders safely with quantity stepper and redelivery options', (tester) async {
       final dummyOrder = DeliveryOrder(
         id: 'ord-123',

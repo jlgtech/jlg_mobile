@@ -6,6 +6,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/network/connectivity_service.dart';
 import '../../../core/network/offline_sync_service.dart';
 import '../../../core/services/local_notification_service.dart';
+import '../../../core/storage/offline_storage.dart';
 
 /// Provider principal des livraisons — compatible mode offline.
 ///
@@ -66,12 +67,23 @@ class DeliveryProvider extends ChangeNotifier {
       return deliveryOrders.where((o) => o.statut == 'EN_ATTENTE_DE_RELIVRAISON' || o.statut == 'ANNULEE').toList();
     } else {
       // A_LIVRER (Ma tournée de livraisons assignées)
-      return deliveryOrders.where((o) =>
+      final list = deliveryOrders.where((o) =>
         !o.isUnassigned &&
         o.statut != 'CLOTUREE' &&
         o.statut != 'EN_ATTENTE_DE_RELIVRAISON' &&
         o.statut != 'ANNULEE'
       ).toList();
+
+      // Trier : La course active (EN_COURS_DE_LIVRAISON) apparait TOUJOURS en première position (haut de liste)
+      list.sort((a, b) {
+        final aInProgress = a.statut == 'EN_COURS_DE_LIVRAISON';
+        final bInProgress = b.statut == 'EN_COURS_DE_LIVRAISON';
+        if (aInProgress && !bInProgress) return -1;
+        if (!aInProgress && bInProgress) return 1;
+        return 0;
+      });
+
+      return list;
     }
   }
 
@@ -182,17 +194,32 @@ class DeliveryProvider extends ChangeNotifier {
   Future<bool> startDelivery(String orderId) async {
     _errorMessage = null;
     final existing = _orders.where((o) => o.id == orderId).firstOrNull;
-    final orderCode = existing?.code ?? "CMD-${orderId.substring(0, 8).toUpperCase()}";
+    final orderCode = existing?.code ?? "CMD-${orderId.length >= 8 ? orderId.substring(0, 8).toUpperCase() : orderId}";
+
+    // Mise a jour optimiste immediate en memoire pour reactivite sans latence
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index != -1) {
+      _orders[index] = _orders[index].copyWith(statut: 'EN_COURS_DE_LIVRAISON');
+      notifyListeners();
+    }
+    await OfflineStorage.applyLocalStatusUpdate(orderId, 'EN_COURS_DE_LIVRAISON');
 
     final result = await _syncService.updateOrderStatus(orderId, 'EN_COURS_DE_LIVRAISON');
     if (result.success) {
-      await fetchOrders();
+      _lastFetchTime = null;
+      await fetchOrders(silent: true, force: true);
       LocalNotificationService.showDeliveryNotification(
         id: orderId.hashCode,
         title: "Tournée Démarrée",
         body: "Livraison $orderCode : En route vers ${existing?.clientNom ?? 'le client'}.",
       );
       return true;
+    }
+    // Restaurer l'etat precedent en cas d'erreur
+    if (existing != null && index != -1) {
+      _orders[index] = existing;
+      await OfflineStorage.applyLocalStatusUpdate(orderId, existing.statut);
+      notifyListeners();
     }
     _errorMessage = result.errorMessage;
     notifyListeners();
@@ -207,10 +234,23 @@ class DeliveryProvider extends ChangeNotifier {
   }) async {
     _errorMessage = null;
     final existing = _orders.where((o) => o.id == orderId).firstOrNull;
-    final orderCode = existing?.code ?? "CMD-${orderId.substring(0, 8).toUpperCase()}";
+    final orderCode = existing?.code ?? "CMD-${orderId.length >= 8 ? orderId.substring(0, 8).toUpperCase() : orderId}";
 
     final double targetLat = lat ?? AppConfig.fallbackLatitude;
     final double targetLng = lng ?? AppConfig.fallbackLongitude;
+
+    // Mise a jour optimiste immediate
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index != -1) {
+      _orders[index] = _orders[index].copyWith(
+        statut: 'CLOTUREE',
+        estPayee: true,
+        latitude: targetLat,
+        longitude: targetLng,
+      );
+      notifyListeners();
+    }
+    await OfflineStorage.applyLocalStatusUpdate(orderId, 'CLOTUREE');
 
     final result = await _syncService.updateOrderStatus(
       orderId,
@@ -221,13 +261,19 @@ class DeliveryProvider extends ChangeNotifier {
     );
 
     if (result.success) {
-      await fetchOrders();
+      _lastFetchTime = null;
+      await fetchOrders(silent: true, force: true);
       LocalNotificationService.showDeliveryNotification(
         id: orderId.hashCode,
         title: "Livraison Clôturée",
         body: "La commande $orderCode a été remise et validée avec succès.",
       );
       return true;
+    }
+    if (existing != null && index != -1) {
+      _orders[index] = existing;
+      await OfflineStorage.applyLocalStatusUpdate(orderId, existing.statut);
+      notifyListeners();
     }
     _errorMessage = result.errorMessage;
     notifyListeners();
@@ -242,6 +288,17 @@ class DeliveryProvider extends ChangeNotifier {
     String? landmark,
   }) async {
     _errorMessage = null;
+    final existing = _orders.where((o) => o.id == orderId).firstOrNull;
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index != -1) {
+      _orders[index] = _orders[index].copyWith(
+        latitude: lat,
+        longitude: lng,
+        confirmationGpsRequise: false,
+      );
+      notifyListeners();
+    }
+
     final result = await DeliveryService.confirmOrderLocation(
       orderId,
       lat: lat,
@@ -250,8 +307,13 @@ class DeliveryProvider extends ChangeNotifier {
       landmark: landmark,
     );
     if (result.success) {
-      await fetchOrders();
+      _lastFetchTime = null;
+      await fetchOrders(silent: true, force: true);
       return true;
+    }
+    if (existing != null && index != -1) {
+      _orders[index] = existing;
+      notifyListeners();
     }
     _errorMessage = result.errorMessage;
     notifyListeners();
@@ -274,20 +336,34 @@ class DeliveryProvider extends ChangeNotifier {
       return false;
     }
 
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index != -1) {
+      _orders[index] = _orders[index].copyWith(
+        estPayee: true,
+        modePaiement: modePaiement,
+      );
+      notifyListeners();
+    }
+
     final result = await DeliveryService.recordPayment(
       orderId,
       modePaiement: modePaiement,
       notesPaiement: notesPaiement,
     );
     if (result.success) {
-      await fetchOrders();
-      final orderCode = existing?.code ?? "CMD-${orderId.substring(0, 8).toUpperCase()}";
+      _lastFetchTime = null;
+      await fetchOrders(silent: true, force: true);
+      final orderCode = existing?.code ?? "CMD-${orderId.length >= 8 ? orderId.substring(0, 8).toUpperCase() : orderId}";
       LocalNotificationService.showPaymentNotification(
         id: "${orderId}pay".hashCode,
         title: "Encaissement Validé",
         body: "Paiement de ${existing?.montantTotal.toStringAsFixed(2) ?? ''} HTG enregistré pour $orderCode ($modePaiement).",
       );
       return true;
+    }
+    if (existing != null && index != -1) {
+      _orders[index] = existing;
+      notifyListeners();
     }
     _errorMessage = result.errorMessage;
     notifyListeners();
@@ -305,7 +381,7 @@ class DeliveryProvider extends ChangeNotifier {
   }) async {
     _errorMessage = null;
     final existing = _orders.where((o) => o.id == orderId).firstOrNull;
-    final orderCode = existing?.code ?? "CMD-${orderId.substring(0, 8).toUpperCase()}";
+    final orderCode = existing?.code ?? "CMD-${orderId.length >= 8 ? orderId.substring(0, 8).toUpperCase() : orderId}";
 
     final result = await _syncService.declareDispute(
       orderId: orderId,
@@ -317,7 +393,8 @@ class DeliveryProvider extends ChangeNotifier {
       actionChoisie: actionChoisie,
     );
     if (result.success) {
-      await fetchOrders();
+      _lastFetchTime = null;
+      await fetchOrders(silent: true, force: true);
       LocalNotificationService.showAlertNotification(
         id: "${orderId}dispute".hashCode,
         title: "Litige Terrain Enregistré",

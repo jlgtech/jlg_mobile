@@ -104,6 +104,56 @@ class DeliveryOrder {
     this.longitude,
   });
 
+  DeliveryOrder copyWith({
+    String? id,
+    String? code,
+    String? clientNom,
+    String? clientTel,
+    String? clientEmail,
+    String? adresseLivraison,
+    String? modePaiement,
+    String? precisionPaiement,
+    double? montantTotal,
+    String? statut,
+    bool? estPayee,
+    String? payeeLe,
+    String? encaissePar,
+    bool? confirmationGpsRequise,
+    bool? premiereLivraisonAdresse,
+    bool? estVenteACredit,
+    bool? estRetraitSurPlace,
+    String? chauffeurId,
+    DateTime? dateCreation,
+    List<DeliveryItem>? items,
+    double? latitude,
+    double? longitude,
+  }) {
+    return DeliveryOrder(
+      id: id ?? this.id,
+      code: code ?? this.code,
+      clientNom: clientNom ?? this.clientNom,
+      clientTel: clientTel ?? this.clientTel,
+      clientEmail: clientEmail ?? this.clientEmail,
+      adresseLivraison: adresseLivraison ?? this.adresseLivraison,
+      modePaiement: modePaiement ?? this.modePaiement,
+      precisionPaiement: precisionPaiement ?? this.precisionPaiement,
+      montantTotal: montantTotal ?? this.montantTotal,
+      statut: statut ?? this.statut,
+      estPayee: estPayee ?? this.estPayee,
+      payeeLe: payeeLe ?? this.payeeLe,
+      encaissePar: encaissePar ?? this.encaissePar,
+      confirmationGpsRequise: confirmationGpsRequise ?? this.confirmationGpsRequise,
+      premiereLivraisonAdresse: premiereLivraisonAdresse ?? this.premiereLivraisonAdresse,
+      estVenteACredit: estVenteACredit ?? this.estVenteACredit,
+      estRetraitSurPlace: estRetraitSurPlace ?? this.estRetraitSurPlace,
+      chauffeurId: chauffeurId ?? this.chauffeurId,
+      dateCreation: dateCreation ?? this.dateCreation,
+      items: items ?? this.items,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+    );
+  }
+
   /// Indique si la course est encore libre (non assignée à un chauffeur)
   bool get isUnassigned => chauffeurId == null || chauffeurId!.trim().isEmpty;
 
