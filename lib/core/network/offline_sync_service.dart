@@ -84,6 +84,7 @@ class OfflineSyncService extends ChangeNotifier {
     String newStatus, {
     double? lat,
     double? lng,
+    List<Map<String, dynamic>>? consignes,
   }) async {
     if (_connectivity.isOffline) {
       // Application immédiate sur le cache offline (optimistic update)
@@ -97,6 +98,7 @@ class OfflineSyncService extends ChangeNotifier {
           'statut': newStatus,
           'latitude_livraison': lat,
           'longitude_livraison': lng,
+          if (consignes != null && consignes.isNotEmpty) 'consignes': consignes,
         }..removeWhere((_, v) => v == null),
         createdAt: DateTime.now(),
       );
@@ -106,7 +108,7 @@ class OfflineSyncService extends ChangeNotifier {
       return (success: true, errorMessage: null);
     }
 
-    return DeliveryService.updateOrderStatus(orderId, newStatus, lat: lat, lng: lng);
+    return DeliveryService.updateOrderStatus(orderId, newStatus, lat: lat, lng: lng, consignes: consignes);
   }
 
   /// Tente de déclarer un litige.
@@ -188,6 +190,9 @@ class OfflineSyncService extends ChangeNotifier {
                 : null,
             lng: action.payload['longitude_livraison'] != null
                 ? (action.payload['longitude_livraison'] as num).toDouble()
+                : null,
+            consignes: action.payload['consignes'] != null
+                ? List<Map<String, dynamic>>.from(action.payload['consignes'] as List)
                 : null,
           );
           ok = result.success;

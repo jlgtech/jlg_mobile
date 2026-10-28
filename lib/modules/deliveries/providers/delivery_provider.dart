@@ -199,7 +199,12 @@ class DeliveryProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<bool> completeDelivery(String orderId, {double? lat, double? lng}) async {
+  Future<bool> completeDelivery(
+    String orderId, {
+    double? lat,
+    double? lng,
+    List<Map<String, dynamic>>? consignes,
+  }) async {
     _errorMessage = null;
     final existing = _orders.where((o) => o.id == orderId).firstOrNull;
     final orderCode = existing?.code ?? "CMD-${orderId.substring(0, 8).toUpperCase()}";
@@ -212,6 +217,7 @@ class DeliveryProvider extends ChangeNotifier {
       'CLOTUREE',
       lat: targetLat,
       lng: targetLng,
+      consignes: consignes,
     );
 
     if (result.success) {

@@ -8,6 +8,7 @@ import '../services/delivery_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/error_sanitizer.dart';
 
 class DeliveryDetailView extends StatefulWidget {
   final DeliveryOrder order;
@@ -71,10 +72,11 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     setState(() => _isProcessing = true);
     final provider = Provider.of<DeliveryProvider>(context, listen: false);
 
+    List<Map<String, dynamic>>? consigneItems;
     // Si la commande comporte des articles consignés, enregistrer les contenants récupérés
     final hasConsignes = widget.order.items.any((it) => it.exigeRetourEmballage);
     if (hasConsignes) {
-      final consigneItems = widget.order.items
+      consigneItems = widget.order.items
           .where((it) => it.exigeRetourEmballage)
           .map((it) => {
                 'article_id': it.articleId,
@@ -89,11 +91,32 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
 
       if (consigneItems.isNotEmpty) {
         try {
-          await DeliveryService.declareConsignes(
+          final res = await DeliveryService.declareConsignes(
             orderId: widget.order.id,
             items: consigneItems,
           );
-        } catch (_) {}
+          if (!res.success) {
+            setState(() => _isProcessing = false);
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(res.errorMessage ?? "Déclaration des emballages consignés obligatoire avant clôture."),
+                backgroundColor: Colors.red.shade700,
+              ),
+            );
+            return;
+          }
+        } catch (e) {
+          setState(() => _isProcessing = false);
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Erreur de déclaration des emballages : ${ErrorSanitizer.extractErrorMessage(e)}"),
+              backgroundColor: Colors.red.shade700,
+            ),
+          );
+          return;
+        }
       }
     }
 
@@ -101,6 +124,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
       widget.order.id,
       lat: widget.order.latitude ?? AppConfig.fallbackLatitude,
       lng: widget.order.longitude ?? AppConfig.fallbackLongitude,
+      consignes: consigneItems,
     );
 
     setState(() => _isProcessing = false);
@@ -1255,20 +1279,40 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                 ),
               ),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "Retour de vides (Bonbonnes)",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                        color: Color(0xFF047857),
-                      ),
+                    Row(
+                      children: [
+                        const Text(
+                          "Retour de vides (Bonbonnes)",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                            color: Color(0xFF047857),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF047857),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            "Obligatoire",
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      "Nombre de bonbonnes ou contenants vides recuperes",
+                    const Text(
+                      "Déclaration obligatoire des contenants récupérés",
                       style: TextStyle(fontSize: 11, color: Colors.grey),
                     ),
                   ],
@@ -1397,6 +1441,72 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                             },
                           ),
                         ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _consignesRecuperees[it.articleId] = it.quantiteCommandee;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: qtyRecuperee == it.quantiteCommandee
+                                ? const Color(0xFF047857)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFF047857),
+                            ),
+                          ),
+                          child: Text(
+                            "Tout récupéré (${it.quantiteCommandee})",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: qtyRecuperee == it.quantiteCommandee
+                                  ? Colors.white
+                                  : const Color(0xFF047857),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _consignesRecuperees[it.articleId] = 0;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: qtyRecuperee == 0
+                                ? Colors.red.shade700
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.red.shade400,
+                            ),
+                          ),
+                          child: Text(
+                            "Rien récupéré (0)",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: qtyRecuperee == 0
+                                  ? Colors.white
+                                  : Colors.red.shade700,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),

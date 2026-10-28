@@ -27,6 +27,7 @@ class DeliveryService {
     String newStatus, {
     double? lat,
     double? lng,
+    List<Map<String, dynamic>>? consignes,
   }) async {
     try {
       if (lat != null && lng != null) {
@@ -38,7 +39,10 @@ class DeliveryService {
         );
       }
 
-      final body = {'statut': newStatus};
+      final body = <String, dynamic>{'statut': newStatus};
+      if (consignes != null && consignes.isNotEmpty) {
+        body['consignes'] = consignes;
+      }
       final response = await ApiClient.post('/orders/$orderId/status', body);
       if (response.statusCode == 200) {
         return (success: true, errorMessage: null);
