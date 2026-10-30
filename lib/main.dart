@@ -3,16 +3,20 @@ import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'core/config/app_config.dart';
+import 'core/network/api_client.dart';
 import 'core/network/connectivity_service.dart';
 import 'core/network/offline_sync_service.dart';
+import 'core/providers/maintenance_provider.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_provider.dart';
 import 'modules/deliveries/providers/delivery_provider.dart';
 import 'modules/auth/providers/auth_provider.dart';
+import 'modules/maintenance/views/maintenance_view.dart';
 import 'modules/station/providers/station_provider.dart';
 import 'modules/notifications/providers/notification_provider.dart';
 import 'modules/splash/views/splash_view.dart';
+import 'widgets/maintenance_warning_banner.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -128,6 +132,17 @@ class _JLGMobileAppState extends State<JLGMobileApp> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // Interception des réponses 503 HTTP pour basculer instantanément en mode maintenance
+    ApiClient.onMaintenanceDetected = (data) {
+      final ctx = AppConfig.navigatorKey.currentContext;
+      if (ctx != null) {
+        final auth = Provider.of<AuthProvider>(ctx, listen: false);
+        if (auth.currentUser?.role != 'SUPER_ADMIN') {
+          Provider.of<MaintenanceProvider>(ctx, listen: false).handle503(data);
+        }
+      }
+    };
   }
 
   @override
@@ -142,22 +157,29 @@ class _JLGMobileAppState extends State<JLGMobileApp> with WidgetsBindingObserver
     final ctx = AppConfig.navigatorKey.currentContext;
     if (ctx == null) return;
 
-    final authProvider = Provider.of<AuthProvider>(ctx, listen: false);
-    if (!authProvider.isAuthenticated) return;
-
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.hidden) {
-      // Mettre en pause le polling périodique en arrière-plan pour économiser la batterie et le réseau
-      Provider.of<DeliveryProvider>(ctx, listen: false).pausePolling();
-      Provider.of<NotificationProvider>(ctx, listen: false).pausePolling();
-    } else if (state == AppLifecycleState.resumed) {
-      // Reprise du polling uniquement au premier plan pour les rôles habilités
-      final user = authProvider.currentUser;
-      if (user != null && (user.role == 'LIVREUR' || user.role == 'CHAUFFEUR')) {
-        Provider.of<DeliveryProvider>(ctx, listen: false).resumePolling();
+      // Mettre en pause le polling périodique en arrière-plan
+      Provider.of<MaintenanceProvider>(ctx, listen: false).pausePolling();
+
+      final authProvider = Provider.of<AuthProvider>(ctx, listen: false);
+      if (authProvider.isAuthenticated) {
+        Provider.of<DeliveryProvider>(ctx, listen: false).pausePolling();
+        Provider.of<NotificationProvider>(ctx, listen: false).pausePolling();
       }
-      Provider.of<NotificationProvider>(ctx, listen: false).resumePolling();
+    } else if (state == AppLifecycleState.resumed) {
+      // Reprise du polling au premier plan
+      Provider.of<MaintenanceProvider>(ctx, listen: false).resumePolling();
+
+      final authProvider = Provider.of<AuthProvider>(ctx, listen: false);
+      if (authProvider.isAuthenticated) {
+        final user = authProvider.currentUser;
+        if (user != null && (user.role == 'LIVREUR' || user.role == 'CHAUFFEUR')) {
+          Provider.of<DeliveryProvider>(ctx, listen: false).resumePolling();
+        }
+        Provider.of<NotificationProvider>(ctx, listen: false).resumePolling();
+      }
     }
   }
 
@@ -170,6 +192,7 @@ class _JLGMobileAppState extends State<JLGMobileApp> with WidgetsBindingObserver
         ChangeNotifierProvider(create: (_) => DeliveryProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => MaintenanceProvider()..initialize()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
@@ -181,6 +204,34 @@ class _JLGMobileAppState extends State<JLGMobileApp> with WidgetsBindingObserver
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
             home: const SplashView(),
+            builder: (context, navigatorChild) {
+              return Consumer2<MaintenanceProvider, AuthProvider>(
+                builder: (context, maintenance, auth, _) {
+                  final isSuperAdmin = auth.currentUser?.role == 'SUPER_ADMIN';
+
+                  // Le Super-Admin conserve toujours son accès souverain à l'application
+                  if (maintenance.isActive && !isSuperAdmin) {
+                    return const MaintenanceView();
+                  }
+
+                  return Stack(
+                    children: [
+                      navigatorChild ?? const SizedBox.shrink(),
+                      if (maintenance.isWarning && !isSuperAdmin)
+                        const Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: SafeArea(
+                            bottom: false,
+                            child: MaintenanceWarningBanner(),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              );
+            },
           );
         },
       ),

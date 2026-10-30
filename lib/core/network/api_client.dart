@@ -5,6 +5,7 @@ import '../storage/auth_storage.dart';
 
 class ApiClient {
   static void Function()? onSessionExpired;
+  static void Function(Map<String, dynamic>? data)? onMaintenanceDetected;
 
   static Future<Map<String, String>> _getHeaders() async {
     final token = await AuthStorage.getToken();
@@ -35,6 +36,22 @@ class ApiClient {
             _isHandlingExpiredSession = false;
           });
         }
+      }
+    } else if (response.statusCode == 503) {
+      // Interception du mode maintenance système
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map<String, dynamic>) {
+          if (body['maintenance'] == true || body['status'] == 'maintenance') {
+            onMaintenanceDetected?.call(body);
+          } else {
+            onMaintenanceDetected?.call(body);
+          }
+        } else {
+          onMaintenanceDetected?.call(null);
+        }
+      } catch (_) {
+        onMaintenanceDetected?.call(null);
       }
     }
     return response;
