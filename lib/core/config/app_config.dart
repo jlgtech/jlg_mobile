@@ -4,7 +4,7 @@ class AppConfig {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   static const String appName = "Transport & Logistic";
-  static const String appVersion = "1.0.0";
+  static const String appVersion = "2.1.6";
 
   // =========================================================================
   // BASCULEMENT ULTRA-SIMPLE : Mettre a `true` pour PROD, `false` pour LOCAL
