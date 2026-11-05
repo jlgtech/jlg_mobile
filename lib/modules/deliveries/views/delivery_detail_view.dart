@@ -552,6 +552,11 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
               // Synthese Destinataire
               _buildCustomerCard(context, currentOrder),
 
+              const SizedBox(height: 14),
+
+              // Planification & Priorité de Livraison
+              _buildScheduleCard(context, currentOrder),
+
               const SizedBox(height: 16),
 
               // Stepper Guidé Titre
@@ -1176,6 +1181,240 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleCard(BuildContext context, DeliveryOrder order) {
+    final isDark = AppTheme.isDark(context);
+    final isUrgente = order.isUrgente;
+    final isBasse = order.isBasse;
+
+    // Calcul de l'échéance
+    String dateLabel = "Date non définie";
+    String? relativeBadge;
+    Color relativeBadgeBg = Colors.grey.shade100;
+    Color relativeBadgeColor = Colors.grey.shade800;
+
+    if (order.dateLivraisonPrevue != null && order.dateLivraisonPrevue!.isNotEmpty) {
+      final parsed = DateTime.tryParse(order.dateLivraisonPrevue!);
+      if (parsed != null) {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final target = DateTime(parsed.year, parsed.month, parsed.day);
+        final diff = target.difference(today).inDays;
+
+        dateLabel = "${parsed.day.toString().padLeft(2, '0')}/${parsed.month.toString().padLeft(2, '0')}/${parsed.year}";
+
+        if (diff == 0) {
+          relativeBadge = "Aujourd'hui";
+          relativeBadgeBg = const Color(0xFFEFF6FF);
+          relativeBadgeColor = const Color(0xFF1D4ED8);
+        } else if (diff == 1) {
+          relativeBadge = "Demain";
+          relativeBadgeBg = const Color(0xFFF0FDF4);
+          relativeBadgeColor = const Color(0xFF15803D);
+        } else if (diff < 0) {
+          relativeBadge = "En retard (${diff.abs()} j)";
+          relativeBadgeBg = const Color(0xFFFEF2F2);
+          relativeBadgeColor = const Color(0xFFB91C1C);
+        }
+      } else {
+        dateLabel = order.dateLivraisonPrevue!;
+      }
+    }
+
+    String slotLabel = "Journée entière (Flexible)";
+    if (order.creneauLivraison?.toUpperCase() == 'MATIN') {
+      slotLabel = "Matin (08h00 - 12h00)";
+    } else if (order.creneauLivraison?.toUpperCase() == 'APRES_MIDI') {
+      slotLabel = "Après-midi (13h00 - 17h00)";
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor(context),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isUrgente ? const Color(0xFFFCA5A5) : AppTheme.borderColor(context),
+          width: isUrgente ? 1.5 : 1.0,
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.event_note_rounded,
+                    size: 18,
+                    color: isDark ? AppTheme.accentMint : AppTheme.primaryRoyal,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Planification & Priorité",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                      color: AppTheme.titleColor(context),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isUrgente
+                      ? const Color(0xFFFEF2F2)
+                      : (isBasse ? const Color(0xFFF1F5F9) : const Color(0xFFEFF6FF)),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isUrgente
+                        ? const Color(0xFFFCA5A5)
+                        : (isBasse ? const Color(0xFFCBD5E1) : const Color(0xFFBFDBFE)),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isUrgente
+                          ? Icons.flash_on_rounded
+                          : (isBasse ? Icons.arrow_downward_rounded : Icons.check_circle_outline_rounded),
+                      size: 13,
+                      color: isUrgente
+                          ? const Color(0xFFDC2626)
+                          : (isBasse ? const Color(0xFF64748B) : const Color(0xFF2563EB)),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      isUrgente ? "URGENTE" : (isBasse ? "Basse" : "Normale"),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        color: isUrgente
+                            ? const Color(0xFF991B1B)
+                            : (isBasse ? const Color(0xFF334155) : const Color(0xFF1E40AF)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Date d'échéance",
+                      style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(context), fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Text(
+                          dateLabel,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.titleColor(context),
+                          ),
+                        ),
+                        if (relativeBadge != null) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: relativeBadgeBg,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              relativeBadge,
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: relativeBadgeColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Créneau horaire",
+                      style: TextStyle(fontSize: 11, color: AppTheme.mutedColor(context), fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      slotLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.titleColor(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (order.instructionsLivraison != null && order.instructionsLivraison!.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.notes_rounded, size: 14, color: Color(0xFFB45309)),
+                      SizedBox(width: 6),
+                      Text(
+                        "Consignes particulières de livraison :",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF92400E),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    order.instructionsLivraison!.trim(),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF78350F),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

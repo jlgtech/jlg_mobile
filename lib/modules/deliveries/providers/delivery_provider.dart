@@ -59,8 +59,32 @@ class DeliveryProvider extends ChangeNotifier {
   List<DeliveryOrder> get filteredOrders {
     // Les commandes de retrait sur place (le client récupère lui-même) ne doivent JAMAIS apparaître pour les chauffeurs
     final deliveryOrders = _orders.where((o) => !o.isPickupOrder).toList();
+    int prioriteWeight(DeliveryOrder o) {
+      if (o.isUrgente) return 1;
+      if (o.isBasse) return 3;
+      return 2;
+    }
+
+    int compareOrders(DeliveryOrder a, DeliveryOrder b) {
+      final pA = prioriteWeight(a);
+      final pB = prioriteWeight(b);
+      if (pA != pB) return pA.compareTo(pB);
+
+      if (a.dateLivraisonPrevue != null && b.dateLivraisonPrevue != null) {
+        final cmp = a.dateLivraisonPrevue!.compareTo(b.dateLivraisonPrevue!);
+        if (cmp != 0) return cmp;
+      } else if (a.dateLivraisonPrevue != null) {
+        return -1;
+      } else if (b.dateLivraisonPrevue != null) {
+        return 1;
+      }
+      return 0;
+    }
+
     if (_activeTab == 'DISPONIBLES') {
-      return deliveryOrders.where((o) => o.isUnassigned && o.statut != 'CLOTUREE' && o.statut != 'ANNULEE').toList();
+      final list = deliveryOrders.where((o) => o.isUnassigned && o.statut != 'CLOTUREE' && o.statut != 'ANNULEE').toList();
+      list.sort(compareOrders);
+      return list;
     } else if (_activeTab == 'LIVREES') {
       return deliveryOrders.where((o) => !o.isUnassigned && (o.statut == 'CLOTUREE' || o.statut == 'LIVREE_EN_ATTENTE')).toList();
     } else if (_activeTab == 'LITIGES') {
@@ -75,12 +99,13 @@ class DeliveryProvider extends ChangeNotifier {
       ).toList();
 
       // Trier : La course active (EN_COURS_DE_LIVRAISON) apparait TOUJOURS en première position (haut de liste)
+      // Ensuite, prioriser les courses URGENTES, puis l'échéance la plus proche
       list.sort((a, b) {
         final aInProgress = a.statut == 'EN_COURS_DE_LIVRAISON';
         final bInProgress = b.statut == 'EN_COURS_DE_LIVRAISON';
         if (aInProgress && !bInProgress) return -1;
         if (!aInProgress && bInProgress) return 1;
-        return 0;
+        return compareOrders(a, b);
       });
 
       return list;

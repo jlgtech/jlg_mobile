@@ -73,6 +73,10 @@ class DeliveryOrder {
   final bool premiereLivraisonAdresse;
   final bool estVenteACredit;
   final bool estRetraitSurPlace;
+  final String priorite;
+  final String? dateLivraisonPrevue;
+  final String? creneauLivraison;
+  final String? instructionsLivraison;
   final String? chauffeurId;
   final DateTime dateCreation;
   final List<DeliveryItem> items;
@@ -97,6 +101,10 @@ class DeliveryOrder {
     this.premiereLivraisonAdresse = false,
     this.estVenteACredit = false,
     this.estRetraitSurPlace = false,
+    this.priorite = 'NORMALE',
+    this.dateLivraisonPrevue,
+    this.creneauLivraison,
+    this.instructionsLivraison,
     this.chauffeurId,
     required this.dateCreation,
     required this.items,
@@ -122,6 +130,10 @@ class DeliveryOrder {
     bool? premiereLivraisonAdresse,
     bool? estVenteACredit,
     bool? estRetraitSurPlace,
+    String? priorite,
+    String? dateLivraisonPrevue,
+    String? creneauLivraison,
+    String? instructionsLivraison,
     String? chauffeurId,
     DateTime? dateCreation,
     List<DeliveryItem>? items,
@@ -146,6 +158,10 @@ class DeliveryOrder {
       premiereLivraisonAdresse: premiereLivraisonAdresse ?? this.premiereLivraisonAdresse,
       estVenteACredit: estVenteACredit ?? this.estVenteACredit,
       estRetraitSurPlace: estRetraitSurPlace ?? this.estRetraitSurPlace,
+      priorite: priorite ?? this.priorite,
+      dateLivraisonPrevue: dateLivraisonPrevue ?? this.dateLivraisonPrevue,
+      creneauLivraison: creneauLivraison ?? this.creneauLivraison,
+      instructionsLivraison: instructionsLivraison ?? this.instructionsLivraison,
       chauffeurId: chauffeurId ?? this.chauffeurId,
       dateCreation: dateCreation ?? this.dateCreation,
       items: items ?? this.items,
@@ -153,6 +169,12 @@ class DeliveryOrder {
       longitude: longitude ?? this.longitude,
     );
   }
+
+  /// Indique si la livraison est urgente
+  bool get isUrgente => priorite.toUpperCase() == 'URGENTE';
+
+  /// Indique si la livraison a une priorité basse
+  bool get isBasse => priorite.toUpperCase() == 'BASSE';
 
   /// Indique si la course est encore libre (non assignée à un chauffeur)
   bool get isUnassigned => chauffeurId == null || chauffeurId!.trim().isEmpty;
@@ -223,6 +245,10 @@ class DeliveryOrder {
       premiereLivraisonAdresse: json['premiere_livraison_adresse'] == true,
       estVenteACredit: isCredit,
       estRetraitSurPlace: json['est_retrait_sur_place'] == true || json['estRetraitSurPlace'] == true,
+      priorite: json['priorite']?.toString() ?? json['priorite_commande']?.toString() ?? 'NORMALE',
+      dateLivraisonPrevue: json['date_livraison_prevue']?.toString() ?? json['dateLivraisonPrevue']?.toString(),
+      creneauLivraison: json['creneau_livraison']?.toString() ?? json['creneauLivraison']?.toString(),
+      instructionsLivraison: json['instructions_livraison']?.toString() ?? json['instructionsLivraison']?.toString(),
       chauffeurId: json['chauffeur_id']?.toString() ?? json['chauffeurId']?.toString(),
       dateCreation: DateTime.tryParse(json['cree_le']?.toString() ?? json['dateCreation']?.toString() ?? '') ?? DateTime.now(),
       items: parsedItems,
@@ -251,6 +277,10 @@ class DeliveryOrder {
       'premiere_livraison_adresse': premiereLivraisonAdresse,
       'est_vente_a_credit': isCreditOrder,
       'est_retrait_sur_place': estRetraitSurPlace,
+      'priorite': priorite,
+      'date_livraison_prevue': dateLivraisonPrevue,
+      'creneau_livraison': creneauLivraison,
+      'instructions_livraison': instructionsLivraison,
       'dateCreation': dateCreation.toIso8601String(),
       'items': items.map((i) => i.toJson()).toList(),
       'latitude_livraison': latitude,

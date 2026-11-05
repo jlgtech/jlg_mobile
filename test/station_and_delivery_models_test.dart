@@ -245,6 +245,41 @@ void main() {
       expect(updated.clientNom, 'Jean Dupont');
     });
 
+    test('DeliveryOrder correctly parses priority, schedule and instructions', () {
+      final json = {
+        'id': 'cmd-prio-99',
+        'code_commande': 'CMD-PRIO-01',
+        'client_nom': 'Hôpital Saint-Esprit',
+        'client_telephone': '+509 3100 2233',
+        'client_email': 'direction@hopital.ht',
+        'adresse_livraison': 'Route de Frères, Impasse Urgences',
+        'mode_paiement': 'ESPECES',
+        'montant_total': 18000.0,
+        'statut': 'ASSIGNEE',
+        'priorite': 'URGENTE',
+        'date_livraison_prevue': '2026-11-04',
+        'creneau_livraison': 'MATIN',
+        'instructions_livraison': 'Portail arrière réservé aux livraisons médicales',
+        'chauffeur_id': 'ch-01',
+        'lignes': [],
+      };
+
+      final order = DeliveryOrder.fromJson(json);
+
+      expect(order.priorite, 'URGENTE');
+      expect(order.isUrgente, true);
+      expect(order.isBasse, false);
+      expect(order.dateLivraisonPrevue, '2026-11-04');
+      expect(order.creneauLivraison, 'MATIN');
+      expect(order.instructionsLivraison, 'Portail arrière réservé aux livraisons médicales');
+
+      final serialized = order.toJson();
+      expect(serialized['priorite'], 'URGENTE');
+      expect(serialized['date_livraison_prevue'], '2026-11-04');
+      expect(serialized['creneau_livraison'], 'MATIN');
+      expect(serialized['instructions_livraison'], 'Portail arrière réservé aux livraisons médicales');
+    });
+
     testWidgets('DisputeDialog renders safely with quantity stepper and redelivery options', (tester) async {
       final dummyOrder = DeliveryOrder(
         id: 'ord-123',

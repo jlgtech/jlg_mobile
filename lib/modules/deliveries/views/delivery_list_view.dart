@@ -338,6 +338,42 @@ class _DeliveryListViewState extends State<DeliveryListView> {
     );
   }
 
+  String _formatSlot(String? slot) {
+    switch (slot?.toUpperCase()) {
+      case 'MATIN':
+        return 'Matin (08h-12h)';
+      case 'APRES_MIDI':
+        return 'Après-midi (13h-17h)';
+      case 'JOURNEE_ENTIERE':
+        return 'Journée';
+      default:
+        return '';
+    }
+  }
+
+  String _formatSchedule(String? dateStr, String? slot) {
+    if (dateStr == null || dateStr.isEmpty) return '';
+    final parsed = DateTime.tryParse(dateStr);
+    String datePart = dateStr;
+    if (parsed != null) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final target = DateTime(parsed.year, parsed.month, parsed.day);
+      final diff = target.difference(today).inDays;
+      if (diff == 0) {
+        datePart = "Aujourd'hui";
+      } else if (diff == 1) {
+        datePart = 'Demain';
+      } else if (diff < 0) {
+        datePart = 'En retard';
+      } else {
+        datePart = '${parsed.day.toString().padLeft(2, '0')}/${parsed.month.toString().padLeft(2, '0')}';
+      }
+    }
+    final slotPart = _formatSlot(slot);
+    return slotPart.isNotEmpty ? '$datePart • $slotPart' : datePart;
+  }
+
   Widget _buildDeliveryCard(BuildContext context, DeliveryOrder order, DeliveryProvider provider) {
     final isUnassigned = order.isUnassigned;
     final isDone = order.statut == 'CLOTUREE' || order.statut == 'LIVREE_EN_ATTENTE';
@@ -371,22 +407,53 @@ class _DeliveryListViewState extends State<DeliveryListView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppTheme.accentMint.withValues(alpha: 0.15)
-                          : AppTheme.primaryRoyal.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      order.code,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                        color: isDark ? AppTheme.accentMint : AppTheme.primaryRoyal,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? AppTheme.accentMint.withValues(alpha: 0.15)
+                              : AppTheme.primaryRoyal.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          order.code,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                            color: isDark ? AppTheme.accentMint : AppTheme.primaryRoyal,
+                          ),
+                        ),
                       ),
-                    ),
+                      if (order.isUrgente) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFEF2F2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFFCA5A5)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.flash_on_rounded, size: 12, color: Color(0xFFDC2626)),
+                              SizedBox(width: 2),
+                              Text(
+                                "URGENT",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 10,
+                                  color: Color(0xFF991B1B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -495,6 +562,37 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                 ),
               ),
 
+              // Consignes de livraison spécifiques
+              if (order.instructionsLivraison != null && order.instructionsLivraison!.trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFBEB),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFDE68A)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded, size: 14, color: Color(0xFFB45309)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          order.instructionsLivraison!.trim(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF92400E),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 12),
 
               // Footer Details, Badges & Amount
@@ -539,6 +637,37 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                             ],
                           ),
                         ),
+                        // Badge Date et Créneau de livraison
+                        if (order.dateLivraisonPrevue != null && order.dateLivraisonPrevue!.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.calendar_today_rounded,
+                                  size: 10,
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  _formatSchedule(order.dateLivraisonPrevue, order.creneauLivraison),
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         // Badge GPS / 1ère Adresse avec icône
                         if (order.requiresGpsValidation)
                           Container(
