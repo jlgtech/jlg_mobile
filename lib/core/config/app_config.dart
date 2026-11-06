@@ -4,12 +4,12 @@ class AppConfig {
   static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   static const String appName = "Transport & Logistic";
-  static const String appVersion = "2.1.6";
+  static const String appVersion = "2.1.7";
 
   // =========================================================================
   // BASCULEMENT ULTRA-SIMPLE : Mettre a `true` pour PROD, `false` pour LOCAL
   // =========================================================================
-  static bool isProduction = false;
+  static bool isProduction = true;
 
   // URLs d'API configurées automatiquement
   static const String _prodUrl  = "https://jlgapi.jlgpowerservicessupplies.com/api/v1";
