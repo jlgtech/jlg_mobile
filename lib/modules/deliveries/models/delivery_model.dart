@@ -80,6 +80,8 @@ class DeliveryOrder {
   final String? chauffeurId;
   final DateTime dateCreation;
   final List<DeliveryItem> items;
+  final String? produitsSummary;
+  final int? quantiteTotaleCommandee;
   final double? latitude;
   final double? longitude;
 
@@ -108,6 +110,8 @@ class DeliveryOrder {
     this.chauffeurId,
     required this.dateCreation,
     required this.items,
+    this.produitsSummary,
+    this.quantiteTotaleCommandee,
     this.latitude,
     this.longitude,
   });
@@ -137,6 +141,8 @@ class DeliveryOrder {
     String? chauffeurId,
     DateTime? dateCreation,
     List<DeliveryItem>? items,
+    String? produitsSummary,
+    int? quantiteTotaleCommandee,
     double? latitude,
     double? longitude,
   }) {
@@ -165,9 +171,34 @@ class DeliveryOrder {
       chauffeurId: chauffeurId ?? this.chauffeurId,
       dateCreation: dateCreation ?? this.dateCreation,
       items: items ?? this.items,
+      produitsSummary: produitsSummary ?? this.produitsSummary,
+      quantiteTotaleCommandee: quantiteTotaleCommandee ?? this.quantiteTotaleCommandee,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
     );
+  }
+
+  /// Quantité totale d'articles commandés (ex: 25)
+  int get totalArticlesCount {
+    final fromItems = items.fold<int>(0, (sum, it) => sum + it.quantiteCommandee);
+    if (fromItems > 0) return fromItems;
+    if (quantiteTotaleCommandee != null && quantiteTotaleCommandee! > 0) {
+      return quantiteTotaleCommandee!;
+    }
+    return 0;
+  }
+
+  /// Résumé des articles et quantités commandées pour affichage direct sur la carte
+  String get articlesSummary {
+    if (items.isNotEmpty) {
+      return items.map((it) => '${it.quantiteCommandee}x ${it.designation}').join(', ');
+    }
+    if (produitsSummary != null &&
+        produitsSummary!.trim().isNotEmpty &&
+        !produitsSummary!.contains('x Article')) {
+      return produitsSummary!.trim();
+    }
+    return '1 commande';
   }
 
   /// Indique si la livraison est urgente
@@ -217,6 +248,25 @@ class DeliveryOrder {
     return pickupKeywords.any((k) => addr.contains(k));
   }
 
+  /// Libellé lisible du statut de livraison
+  String get statutLabel {
+    switch (statut.toUpperCase()) {
+      case 'EN_COURS_DE_LIVRAISON':
+      case 'EN_COURS':
+        return 'En cours';
+      case 'LIVREE':
+        return 'Livrée';
+      case 'ASSIGNEE':
+        return 'Assignée';
+      case 'EN_ATTENTE':
+        return 'En attente';
+      case 'ANNULEE':
+        return 'Annulée';
+      default:
+        return statut;
+    }
+  }
+
   factory DeliveryOrder.fromJson(Map<String, dynamic> json) {
     var rawItems = (json['lignes'] as List?) ?? (json['items'] as List?) ?? [];
     List<DeliveryItem> parsedItems = rawItems
@@ -252,6 +302,8 @@ class DeliveryOrder {
       chauffeurId: json['chauffeur_id']?.toString() ?? json['chauffeurId']?.toString(),
       dateCreation: DateTime.tryParse(json['cree_le']?.toString() ?? json['dateCreation']?.toString() ?? '') ?? DateTime.now(),
       items: parsedItems,
+      produitsSummary: json['produits_summary']?.toString(),
+      quantiteTotaleCommandee: (json['quantite_totale_commandee'] is num) ? (json['quantite_totale_commandee'] as num).toInt() : null,
       latitude: json['latitude_livraison'] != null ? double.tryParse(json['latitude_livraison'].toString()) : null,
       longitude: json['longitude_livraison'] != null ? double.tryParse(json['longitude_livraison'].toString()) : null,
     );
@@ -283,6 +335,8 @@ class DeliveryOrder {
       'instructions_livraison': instructionsLivraison,
       'dateCreation': dateCreation.toIso8601String(),
       'items': items.map((i) => i.toJson()).toList(),
+      'produits_summary': produitsSummary,
+      'quantite_totale_commandee': quantiteTotaleCommandee,
       'latitude_livraison': latitude,
       'longitude_livraison': longitude,
     };

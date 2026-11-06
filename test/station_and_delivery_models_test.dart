@@ -119,6 +119,36 @@ void main() {
       expect(order.statut, 'CLOTUREE');
     });
 
+    test('DeliveryOrder calculates totalArticlesCount and articlesSummary for list view cards', () {
+      final json = {
+        'id': 'cmd-3333',
+        'code_commande': 'CMD-20261015-03',
+        'client_nom': 'Jean Marc',
+        'adresse_livraison': 'Petion-Ville',
+        'mode_paiement': 'ESPECES',
+        'montant_total': 2000.0,
+        'statut': 'ASSIGNEE',
+        'items': [
+          {
+            'article_id': 'art-01',
+            'article_designation': 'Pack Sachet Eau Traitée (50)',
+            'quantite_commandee': 25,
+            'prix_unitaire': 50.0,
+          },
+          {
+            'article_id': 'art-02',
+            'article_designation': 'Bonbonne 5 Gallons',
+            'quantite_commandee': 3,
+            'prix_unitaire': 250.0,
+          }
+        ],
+      };
+
+      final order = DeliveryOrder.fromJson(json);
+      expect(order.totalArticlesCount, 28);
+      expect(order.articlesSummary, '25x Pack Sachet Eau Traitée (50), 3x Bonbonne 5 Gallons');
+    });
+
     test('DeliveryOrder correctly identifies pickup and self-service orders', () {
       // 1. Commande avec flag explicite est_retrait_sur_place
       final orderFlag = DeliveryOrder.fromJson({

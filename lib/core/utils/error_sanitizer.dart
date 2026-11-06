@@ -45,22 +45,13 @@ class ErrorSanitizer {
       return "Session expirée ou identifiants invalides. Veuillez vous reconnecter.";
     }
 
-    // 403 Forbidden
-    if (status == 403) {
-      return "Accès refusé. Vous n'avez pas les autorisations requises.";
-    }
-
-    // 404 Not Found
-    if (status == 404) {
-      return "La ressource demandée n'existe pas ou n'est plus disponible.";
-    }
-
-    // 500+ Internal Server Error / Gateway Failures
+    // 500+ Internal Server Error / Gateway Failures (Strict SSI: Never leak server details)
     if (status >= 500) {
       return "Le serveur rencontre une difficulté temporaire (HTTP $status). Veuillez réessayer ultérieurement.";
     }
 
-    // Attempt to extract detail from JSON response
+    // Tenter d'extraire le message d'erreur précis renvoyé par l'API JSON
+    String? extractedDetail;
     try {
       if (response.body.isNotEmpty) {
         final data = jsonDecode(response.body);
@@ -68,7 +59,11 @@ class ErrorSanitizer {
           final detail = data['detail'] ?? data['message'] ?? data['error'];
           if (detail != null) {
             if (detail is String) {
-              return sanitizeDetailString(detail);
+              final trimmed = detail.trim();
+              final lower = trimmed.toLowerCase();
+              if (lower != 'not found' && lower != 'forbidden' && trimmed.isNotEmpty) {
+                extractedDetail = sanitizeDetailString(trimmed);
+              }
             } else if (detail is List && detail.isNotEmpty) {
               final first = detail.first;
               if (first is Map && first['msg'] != null) {
@@ -76,14 +71,28 @@ class ErrorSanitizer {
                     ? (first['loc'] as List).last.toString()
                     : '';
                 final msg = first['msg'].toString();
-                return field.isNotEmpty ? "Champ '$field': $msg" : msg;
+                extractedDetail = field.isNotEmpty ? "Champ '$field': $msg" : msg;
               }
             }
           }
         }
       }
     } catch (_) {
-      // Ignore FormatException for non-JSON response bodies (e.g. 502 Bad Gateway HTML)
+      // Ignore FormatException for non-JSON response bodies
+    }
+
+    // Si l'API a retourné un détail métier précis et exploitable, on l'affiche
+    if (extractedDetail != null && extractedDetail.isNotEmpty) {
+      return extractedDetail;
+    }
+
+    // Messages de repli sécurisés selon le code HTTP
+    if (status == 403) {
+      return "Accès refusé. Vous n'avez pas les autorisations requises.";
+    }
+
+    if (status == 404) {
+      return "La ressource demandée n'existe pas ou n'est plus disponible.";
     }
 
     return "Impossible de traiter la demande (HTTP $status).";

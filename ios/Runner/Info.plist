@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Jlg Mobile</string>
+	<string>Transport &amp; Logistic</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,11 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>jlg_mobile</string>
+	<string>Transport &amp; Logistic</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>L'application Transport &amp; Logistic utilise votre position pour localiser vos trajets de livraison et enregistrer les coordonnées des clients.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>L'application Transport &amp; Logistic a besoin de votre position pour le suivi en temps réel de votre tournée de livraison.</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

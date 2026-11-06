@@ -56,19 +56,17 @@ class OfflineSyncService extends ChangeNotifier {
   // ─── CHARGEMENT DES COMMANDES ────────────────────────────────────────────
 
   /// Charge les commandes pour le chauffeur.
-  /// Si en ligne : récupère depuis l'API et met à jour le cache.
+  /// Si en ligne : récupère depuis l'API et met à jour le cache (même si la liste est vide).
   /// Si hors ligne : retourne les commandes du cache local.
   Future<List<DeliveryOrder>> loadOrders() async {
     if (_connectivity.isOnline) {
       try {
         final orders = await DeliveryService.getAssignedOrders();
-        if (orders.isNotEmpty) {
-          await OfflineStorage.saveOrders(orders);
-          _lastSync = DateTime.now();
-        }
+        await OfflineStorage.saveOrders(orders);
+        _lastSync = DateTime.now();
         return orders;
       } catch (_) {
-        // Échec de l'API, on utilise le cache
+        // En cas d'échec de communication réseau uniquement, on bascule sur le cache local
       }
     }
     return OfflineStorage.loadOrders();

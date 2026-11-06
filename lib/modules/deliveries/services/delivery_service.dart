@@ -6,19 +6,15 @@ import '../models/delivery_model.dart';
 class DeliveryService {
   /// Fetch all delivery orders assigned to the current driver (excluding customer pickups)
   static Future<List<DeliveryOrder>> getAssignedOrders() async {
-    try {
-      final response = await ApiClient.get('/orders/');
-      if (response.statusCode == 200) {
-        final List data = jsonDecode(response.body);
-        return data
-            .map((item) => DeliveryOrder.fromJson(item))
-            .where((order) => !order.isPickupOrder)
-            .toList();
-      }
-      return [];
-    } catch (_) {
-      return [];
+    final response = await ApiClient.get('/orders/');
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+      return data
+          .map((item) => DeliveryOrder.fromJson(item))
+          .where((order) => !order.isPickupOrder)
+          .toList();
     }
+    throw Exception("Erreur HTTP ${response.statusCode} lors de la récupération des commandes");
   }
 
   /// Update order status (e.g., EN_COURS_DE_LIVRAISON, CLOTUREE)

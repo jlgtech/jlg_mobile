@@ -427,6 +427,27 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                           ),
                         ),
                       ),
+                      if (order.totalArticlesCount > 0) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                            ),
+                          ),
+                          child: Text(
+                            "${order.totalArticlesCount} ${order.totalArticlesCount > 1 ? 'pcs' : 'pc'}",
+                            style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 11,
+                              color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155),
+                            ),
+                          ),
+                        ),
+                      ],
                       if (order.isUrgente) ...[
                         const SizedBox(width: 6),
                         Container(
@@ -527,6 +548,84 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                       ),
                     ),
                 ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // Articles & Quantités Commandées (Visibles directement sur la carte)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? AppTheme.cardDarkSubtle : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? AppTheme.borderDark : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.inventory_2_outlined,
+                        size: 15,
+                        color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "COMMANDE",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                  color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                                ),
+                              ),
+                              if (order.totalArticlesCount > 0)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? AppTheme.accentMint.withValues(alpha: 0.2)
+                                        : const Color(0xFF0C4E55).withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    "Quantité : ${order.totalArticlesCount}",
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                      color: isDark ? AppTheme.accentMint : const Color(0xFF0C4E55),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            order.articlesSummary,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? AppTheme.textDarkBody : const Color(0xFF1E293B),
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 8),
@@ -727,68 +826,95 @@ class _DeliveryListViewState extends State<DeliveryListView> {
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
-                  height: 42,
+                  height: 48,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0C4E55),
                       foregroundColor: Colors.white,
                       elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      alignment: Alignment.center,
                     ),
                     icon: const Icon(Icons.add_task_rounded, size: 18),
                     label: const Text(
                       "Prendre la course",
-                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        height: 1.15,
+                      ),
                     ),
-                    onPressed: () async {
-                      final auth = Provider.of<AuthProvider>(context, listen: false);
-                      final currentDriverId = auth.currentUser?.id;
-                      if (currentDriverId == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Chauffeur non identifié.")),
-                        );
-                        return;
-                      }
-                      final res = await provider.claimOrder(
-                        order.id,
-                        driverId: currentDriverId,
-                      );
-                      if (context.mounted) {
-                        if (res.success) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Course ajoutée à votre tournée avec succès !"),
-                              backgroundColor: Color(0xFF0C4E55),
-                            ),
-                          );
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(res.errorMessage ?? "Impossible de prendre la course."),
-                              backgroundColor: Colors.red.shade700,
-                            ),
-                          );
-                        }
-                      }
-                    },
+                    onPressed: provider.isLoading
+                        ? null
+                        : () async {
+                            final auth = Provider.of<AuthProvider>(context, listen: false);
+                            final currentDriverId = auth.currentUser?.id;
+                            if (currentDriverId == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Chauffeur non identifié.")),
+                              );
+                              return;
+                            }
+                            final res = await provider.claimOrder(
+                              order.id,
+                              driverId: currentDriverId,
+                            );
+                            if (context.mounted) {
+                              if (res.success) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text("Course ajoutée à votre tournée avec succès !"),
+                                    backgroundColor: Color(0xFF0C4E55),
+                                  ),
+                                );
+                                // Basculer sur l'onglet Tournée et ouvrir directement la commande
+                                provider.setActiveTab('A_LIVRER');
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => DeliveryDetailView(
+                                      order: order.copyWith(
+                                        chauffeurId: currentDriverId,
+                                        statut: 'ASSIGNEE',
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(res.errorMessage ?? "Impossible de prendre la course."),
+                                    backgroundColor: Colors.red.shade700,
+                                  ),
+                                );
+                              }
+                            }
+                          },
                   ),
                 ),
               ] else if (!isDone && !isDispute) ...[
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity,
-                  height: 40,
+                  height: 48,
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: inProgress ? AppTheme.primaryRoyal : Colors.blue.shade800,
                       foregroundColor: Colors.white,
                       elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      alignment: Alignment.center,
                     ),
-                    icon: Icon(inProgress ? Icons.arrow_forward_rounded : Icons.navigation_rounded, size: 16),
+                    icon: Icon(inProgress ? Icons.arrow_forward_rounded : Icons.navigation_rounded, size: 18),
                     label: Text(
                       inProgress ? "Continuer la course" : "Débuter la course",
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 13,
+                        height: 1.15,
+                      ),
                     ),
                     onPressed: () async {
                       if (!inProgress) {
