@@ -24,6 +24,9 @@ class DeliveryService {
     double? lat,
     double? lng,
     List<Map<String, dynamic>>? consignes,
+    String? nomReceptionnaire,
+    String? signatureReception,
+    String? numeroRecuPapier,
   }) async {
     try {
       if (lat != null && lng != null) {
@@ -38,6 +41,15 @@ class DeliveryService {
       final body = <String, dynamic>{'statut': newStatus};
       if (consignes != null && consignes.isNotEmpty) {
         body['consignes'] = consignes;
+      }
+      if (nomReceptionnaire != null && nomReceptionnaire.trim().isNotEmpty) {
+        body['nom_receptionnaire'] = nomReceptionnaire.trim();
+      }
+      if (signatureReception != null && signatureReception.trim().isNotEmpty) {
+        body['signature_reception'] = signatureReception.trim();
+      }
+      if (numeroRecuPapier != null && numeroRecuPapier.trim().isNotEmpty) {
+        body['numero_recu_papier'] = numeroRecuPapier.trim();
       }
       final response = await ApiClient.post('/orders/$orderId/status', body);
       if (response.statusCode == 200) {

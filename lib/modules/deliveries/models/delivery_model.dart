@@ -84,6 +84,10 @@ class DeliveryOrder {
   final int? quantiteTotaleCommandee;
   final double? latitude;
   final double? longitude;
+  final String? nomReceptionnaire;
+  final String? signatureReception;
+  final String? numeroRecuPapier;
+  final String? livreLe;
 
   DeliveryOrder({
     required this.id,
@@ -114,6 +118,10 @@ class DeliveryOrder {
     this.quantiteTotaleCommandee,
     this.latitude,
     this.longitude,
+    this.nomReceptionnaire,
+    this.signatureReception,
+    this.numeroRecuPapier,
+    this.livreLe,
   });
 
   DeliveryOrder copyWith({
@@ -145,6 +153,10 @@ class DeliveryOrder {
     int? quantiteTotaleCommandee,
     double? latitude,
     double? longitude,
+    String? nomReceptionnaire,
+    String? signatureReception,
+    String? numeroRecuPapier,
+    String? livreLe,
   }) {
     return DeliveryOrder(
       id: id ?? this.id,
@@ -175,6 +187,10 @@ class DeliveryOrder {
       quantiteTotaleCommandee: quantiteTotaleCommandee ?? this.quantiteTotaleCommandee,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      nomReceptionnaire: nomReceptionnaire ?? this.nomReceptionnaire,
+      signatureReception: signatureReception ?? this.signatureReception,
+      numeroRecuPapier: numeroRecuPapier ?? this.numeroRecuPapier,
+      livreLe: livreLe ?? this.livreLe,
     );
   }
 
@@ -306,6 +322,10 @@ class DeliveryOrder {
       quantiteTotaleCommandee: (json['quantite_totale_commandee'] is num) ? (json['quantite_totale_commandee'] as num).toInt() : null,
       latitude: json['latitude_livraison'] != null ? double.tryParse(json['latitude_livraison'].toString()) : null,
       longitude: json['longitude_livraison'] != null ? double.tryParse(json['longitude_livraison'].toString()) : null,
+      nomReceptionnaire: json['nom_receptionnaire']?.toString() ?? json['nomReceptionnaire']?.toString(),
+      signatureReception: json['signature_reception']?.toString() ?? json['signatureReception']?.toString(),
+      numeroRecuPapier: json['numero_recu_papier']?.toString() ?? json['numeroRecuPapier']?.toString(),
+      livreLe: json['livre_le']?.toString() ?? json['livreLe']?.toString(),
     );
   }
 
@@ -339,6 +359,10 @@ class DeliveryOrder {
       'quantite_totale_commandee': quantiteTotaleCommandee,
       'latitude_livraison': latitude,
       'longitude_livraison': longitude,
+      'nom_receptionnaire': nomReceptionnaire,
+      'signature_reception': signatureReception,
+      'numero_recu_papier': numeroRecuPapier,
+      'livre_le': livreLe,
     };
   }
 }

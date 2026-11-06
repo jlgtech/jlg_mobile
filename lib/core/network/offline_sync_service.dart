@@ -83,6 +83,9 @@ class OfflineSyncService extends ChangeNotifier {
     double? lat,
     double? lng,
     List<Map<String, dynamic>>? consignes,
+    String? nomReceptionnaire,
+    String? signatureReception,
+    String? numeroRecuPapier,
   }) async {
     if (_connectivity.isOffline) {
       // Application immédiate sur le cache offline (optimistic update)
@@ -97,6 +100,9 @@ class OfflineSyncService extends ChangeNotifier {
           'latitude_livraison': lat,
           'longitude_livraison': lng,
           if (consignes != null && consignes.isNotEmpty) 'consignes': consignes,
+          if (nomReceptionnaire != null && nomReceptionnaire.trim().isNotEmpty) 'nom_receptionnaire': nomReceptionnaire.trim(),
+          if (signatureReception != null && signatureReception.trim().isNotEmpty) 'signature_reception': signatureReception.trim(),
+          if (numeroRecuPapier != null && numeroRecuPapier.trim().isNotEmpty) 'numero_recu_papier': numeroRecuPapier.trim(),
         }..removeWhere((_, v) => v == null),
         createdAt: DateTime.now(),
       );
@@ -106,7 +112,16 @@ class OfflineSyncService extends ChangeNotifier {
       return (success: true, errorMessage: null);
     }
 
-    return DeliveryService.updateOrderStatus(orderId, newStatus, lat: lat, lng: lng, consignes: consignes);
+    return DeliveryService.updateOrderStatus(
+      orderId,
+      newStatus,
+      lat: lat,
+      lng: lng,
+      consignes: consignes,
+      nomReceptionnaire: nomReceptionnaire,
+      signatureReception: signatureReception,
+      numeroRecuPapier: numeroRecuPapier,
+    );
   }
 
   /// Tente de déclarer un litige.
@@ -192,6 +207,9 @@ class OfflineSyncService extends ChangeNotifier {
             consignes: action.payload['consignes'] != null
                 ? List<Map<String, dynamic>>.from(action.payload['consignes'] as List)
                 : null,
+            nomReceptionnaire: action.payload['nom_receptionnaire']?.toString(),
+            signatureReception: action.payload['signature_reception']?.toString(),
+            numeroRecuPapier: action.payload['numero_recu_papier']?.toString(),
           );
           ok = result.success;
           if (!ok && result.errorMessage != null) {

@@ -1,8 +1,9 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -624,8 +625,24 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     }
   }
 
-  /// Étape 4 (ou 3) : Clôture de la livraison & Bon de livraison (BLP)
+  /// Étape 4 (ou 3) : Clôture de la livraison & Bon de livraison (BLP) avec émargement
   Future<void> _handleComplete(DeliveryOrder currentOrder) async {
+    // 1. Recueillir l'émargement physique et la signature tactile
+    final proof = await showDialog<({
+      String nomReceptionnaire,
+      String? numeroRecuPapier,
+      String? signatureSvg,
+    })>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _ProofOfDeliveryDialog(order: currentOrder),
+    );
+
+    if (proof == null) {
+      // Clôture annulée par le livreur
+      return;
+    }
+
     setState(() => _isProcessing = true);
     final provider = Provider.of<DeliveryProvider>(context, listen: false);
 
@@ -681,6 +698,9 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
       lat: currentOrder.latitude ?? AppConfig.fallbackLatitude,
       lng: currentOrder.longitude ?? AppConfig.fallbackLongitude,
       consignes: consigneItems,
+      nomReceptionnaire: proof.nomReceptionnaire,
+      signatureReception: proof.signatureSvg,
+      numeroRecuPapier: proof.numeroRecuPapier,
     );
 
     setState(() => _isProcessing = false);
@@ -689,7 +709,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Livraison clôturée avec succès. Bon de livraison validé.'),
+          content: Text('Livraison clôturée avec succès. Émargement et bon enregistrés.'),
           backgroundColor: Color(0xFF047857),
         ),
       );
@@ -1641,6 +1661,11 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                       // Stepper séquentiel avec les boutons d'actions d'étapes
                       _buildInteractiveStepsCard(currentOrder, workflow),
 
+                      if (workflow.isDone) ...[
+                        const SizedBox(height: 16),
+                        _buildDeliveryProofCard(currentOrder),
+                      ],
+
                       const SizedBox(height: 16),
 
                       // Récapitulatif Articles & Consignes
@@ -1678,6 +1703,78 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
           ),
         );
       },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // CARTE PREUVE DE LIVRAISON (ÉMARGEMENT & QUITTANCE)
+  // ---------------------------------------------------------------------------
+  Widget _buildDeliveryProofCard(DeliveryOrder currentOrder) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF86EFAC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.verified_user_outlined, color: Color(0xFF166534), size: 20),
+              SizedBox(width: 8),
+              Text(
+                "Preuve de Livraison Conforme",
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF166534)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Réceptionné par :", style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
+              Text(
+                currentOrder.nomReceptionnaire ?? currentOrder.clientNom,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+              ),
+            ],
+          ),
+          if (currentOrder.numeroRecuPapier != null && currentOrder.numeroRecuPapier!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("N° Reçu Papier / BL :", style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                Text(
+                  currentOrder.numeroRecuPapier!,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0A5FCB)),
+                ),
+              ],
+            ),
+          ],
+          if (currentOrder.signatureReception != null && currentOrder.signatureReception!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Signature :", style: TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                Row(
+                  children: [
+                    Icon(Icons.draw, size: 14, color: Color(0xFF166534)),
+                    SizedBox(width: 4),
+                    Text(
+                      "Émargement tactile validé",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF166534)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -2176,4 +2273,475 @@ class _WorkflowProgress {
     required this.isDone,
     required this.currentStep,
   });
+}
+
+// ---------------------------------------------------------------------------
+// DIALOGUE D'ÉMARGEMENT & PREUVE DE LIVRAISON (SIGNATURE TACTILE + BON PAPIER)
+// ---------------------------------------------------------------------------
+class _ProofOfDeliveryDialog extends StatefulWidget {
+  final DeliveryOrder order;
+
+  const _ProofOfDeliveryDialog({required this.order});
+
+  @override
+  State<_ProofOfDeliveryDialog> createState() => _ProofOfDeliveryDialogState();
+}
+
+class _ProofOfDeliveryDialogState extends State<_ProofOfDeliveryDialog> {
+  late final TextEditingController _nomController;
+  final TextEditingController _recuPapierController = TextEditingController();
+  final GlobalKey<_TouchSignaturePadState> _sigKey = GlobalKey<_TouchSignaturePadState>();
+  List<List<Offset>> _strokes = [];
+  String? _validationError;
+
+  @override
+  void initState() {
+    super.initState();
+    final defaultNom = widget.order.clientNom.isNotEmpty && widget.order.clientNom != 'Client Particulier'
+        ? widget.order.clientNom
+        : '';
+    _nomController = TextEditingController(text: defaultNom);
+  }
+
+  @override
+  void dispose() {
+    _nomController.dispose();
+    _recuPapierController.dispose();
+    super.dispose();
+  }
+
+  String _strokesToSvgPath(List<List<Offset>> strokes) {
+    if (strokes.isEmpty) return '';
+    final buffer = StringBuffer();
+    for (final stroke in strokes) {
+      if (stroke.isEmpty) continue;
+      buffer.write('M ${stroke.first.dx.toStringAsFixed(1)} ${stroke.first.dy.toStringAsFixed(1)} ');
+      for (int i = 1; i < stroke.length; i++) {
+        buffer.write('L ${stroke[i].dx.toStringAsFixed(1)} ${stroke[i].dy.toStringAsFixed(1)} ');
+      }
+    }
+    return buffer.toString().trim();
+  }
+
+  void _onConfirm() {
+    final nom = _nomController.text.trim();
+    if (nom.isEmpty) {
+      setState(() {
+        _validationError = "Veuillez renseigner le nom de la personne réceptionnant la livraison sur place.";
+      });
+      return;
+    }
+
+    final svgPath = _strokesToSvgPath(_strokes);
+    final recu = _recuPapierController.text.trim();
+
+    Navigator.pop(context, (
+      nomReceptionnaire: nom,
+      numeroRecuPapier: recu.isNotEmpty ? recu : null,
+      signatureSvg: svgPath.isNotEmpty ? svgPath : null,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Entête
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF047857).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.assignment_turned_in_outlined, color: Color(0xFF047857), size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Émargement & Preuve",
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          "Attestation physique de réception sur place",
+                          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: Color(0xFF64748B), size: 20),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 16),
+
+              // Rappel Commande & Client
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.order.code,
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF0F172A)),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.order.clientNom,
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      "${widget.order.montantTotal.toStringAsFixed(0)} HTG",
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF047857)),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Champ 1 : Nom du réceptionnaire
+              const Text(
+                "Nom du Réceptionnaire sur place *",
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: _nomController,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  hintText: "Ex: M. Jean / Gardien Pierre / Secrétaire",
+                  prefixIcon: const Icon(Icons.person_outline, size: 20, color: Color(0xFF64748B)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFF047857), width: 1.5),
+                  ),
+                ),
+                onChanged: (_) {
+                  if (_validationError != null) setState(() => _validationError = null);
+                },
+              ),
+
+              const SizedBox(height: 14),
+
+              // Champ 2 : N° Bon Papier / Reçu à souche
+              const Text(
+                "N° Reçu Papier / Bon de Livraison Souche (optionnel)",
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: _recuPapierController,
+                textCapitalization: TextCapitalization.characters,
+                decoration: InputDecoration(
+                  hintText: "Ex: BL-48912 ou SOUCHE-042",
+                  prefixIcon: const Icon(Icons.receipt_long_outlined, size: 20, color: Color(0xFF64748B)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: Color(0xFF047857), width: 1.5),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Champ 3 : Zone de signature tactile
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Signature Tactile Client / Réceptionnaire",
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF334155)),
+                  ),
+                  if (_strokes.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDCFCE7),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        "Signé",
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF166534)),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              _TouchSignaturePad(
+                key: _sigKey,
+                onSignatureChanged: (strokes) {
+                  setState(() {
+                    _strokes = strokes;
+                  });
+                },
+              ),
+
+              if (_validationError != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFCA5A5)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, size: 18, color: Color(0xFFB91C1C)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _validationError!,
+                          style: const TextStyle(fontSize: 12, color: Color(0xFFB91C1C), fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 20),
+
+              // Boutons d'action
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        "Annuler",
+                        style: TextStyle(color: Color(0xFF475569), fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF047857),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 2,
+                      ),
+                      onPressed: _onConfirm,
+                      icon: const Icon(Icons.check_circle_outline, size: 20),
+                      label: const Text(
+                        "Valider & Clôturer",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// WIDGET DE CAPTURE TACTILE DE SIGNATURE SANS DÉPENDANCE EXTERNE
+// ---------------------------------------------------------------------------
+class _TouchSignaturePad extends StatefulWidget {
+  final ValueChanged<List<List<Offset>>> onSignatureChanged;
+
+  const _TouchSignaturePad({super.key, required this.onSignatureChanged});
+
+  @override
+  State<_TouchSignaturePad> createState() => _TouchSignaturePadState();
+}
+
+class _TouchSignaturePadState extends State<_TouchSignaturePad> {
+  final List<List<Offset>> _strokes = [];
+  List<Offset>? _currentStroke;
+
+  void clear() {
+    setState(() {
+      _strokes.clear();
+      _currentStroke = null;
+    });
+    widget.onSignatureChanged([]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 160,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFCBD5E1), width: 1.5),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                onPanStart: (details) {
+                  setState(() {
+                    _currentStroke = [details.localPosition];
+                    _strokes.add(_currentStroke!);
+                  });
+                  widget.onSignatureChanged(_strokes);
+                },
+                onPanUpdate: (details) {
+                  setState(() {
+                    _currentStroke?.add(details.localPosition);
+                  });
+                  widget.onSignatureChanged(_strokes);
+                },
+                onPanEnd: (_) {
+                  _currentStroke = null;
+                },
+                child: CustomPaint(
+                  painter: _SignaturePainter(strokes: _strokes),
+                  size: Size.infinite,
+                ),
+              ),
+            ),
+            if (_strokes.isEmpty)
+              const Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.draw_outlined, color: Color(0xFF94A3B8), size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      "Apposer la signature au doigt",
+                      style: TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Positioned(
+              right: 8,
+              top: 8,
+              child: InkWell(
+                onTap: clear,
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.refresh, size: 14, color: Color(0xFF64748B)),
+                      SizedBox(width: 4),
+                      Text(
+                        "Effacer",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SignaturePainter extends CustomPainter {
+  final List<List<Offset>> strokes;
+
+  _SignaturePainter({required this.strokes});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF0F172A)
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = 2.8
+      ..style = PaintingStyle.stroke;
+
+    for (final stroke in strokes) {
+      if (stroke.isEmpty) continue;
+      if (stroke.length == 1) {
+        canvas.drawCircle(stroke.first, 1.4, paint);
+      } else {
+        final path = ui.Path();
+        path.moveTo(stroke.first.dx, stroke.first.dy);
+        for (int i = 1; i < stroke.length; i++) {
+          path.lineTo(stroke[i].dx, stroke[i].dy);
+        }
+        canvas.drawPath(path, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SignaturePainter oldDelegate) => true;
 }

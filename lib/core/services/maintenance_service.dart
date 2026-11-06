@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -5,7 +6,7 @@ import '../config/app_config.dart';
 import '../models/maintenance_info.dart';
 
 class MaintenanceService {
-  static const Duration _timeout = Duration(seconds: 6);
+  static const Duration _timeout = Duration(seconds: 3);
 
   /// Récupère l'état courant de maintenance auprès de l'API publique
   static Future<MaintenanceInfo?> getMaintenanceStatus() async {
@@ -33,8 +34,9 @@ class MaintenanceService {
         } catch (_) {}
       }
     } catch (e) {
-      if (kDebugMode) {
-        print("Erreur lors de la recuperation du statut de maintenance: $e");
+      // Ignorer silencieusement le timeout de maintenance pour ne pas bloquer le démarrage de l'app
+      if (kDebugMode && e is! TimeoutException) {
+        print("Statut maintenance indisponible: $e");
       }
     }
     return null;

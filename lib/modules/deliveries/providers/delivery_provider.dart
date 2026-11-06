@@ -256,6 +256,9 @@ class DeliveryProvider extends ChangeNotifier {
     double? lat,
     double? lng,
     List<Map<String, dynamic>>? consignes,
+    String? nomReceptionnaire,
+    String? signatureReception,
+    String? numeroRecuPapier,
   }) async {
     _errorMessage = null;
     final existing = _orders.where((o) => o.id == orderId).firstOrNull;
@@ -272,6 +275,9 @@ class DeliveryProvider extends ChangeNotifier {
         estPayee: true,
         latitude: targetLat,
         longitude: targetLng,
+        nomReceptionnaire: nomReceptionnaire,
+        signatureReception: signatureReception,
+        numeroRecuPapier: numeroRecuPapier,
       );
       notifyListeners();
     }
@@ -283,6 +289,9 @@ class DeliveryProvider extends ChangeNotifier {
       lat: targetLat,
       lng: targetLng,
       consignes: consignes,
+      nomReceptionnaire: nomReceptionnaire,
+      signatureReception: signatureReception,
+      numeroRecuPapier: numeroRecuPapier,
     );
 
     if (result.success) {
