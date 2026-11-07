@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/services/location_service.dart';
+import '../../../core/services/routing_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/error_sanitizer.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -45,6 +46,11 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
   double? _driverAccuracyMeters;
   StreamSubscription<Position>? _positionSubscription;
   bool _isGpsActive = false;
+
+  // Routage routier dynamique (Algorithme de Dijkstra / OSRM)
+  RoutingResult? _routingResult;
+  bool _isCalculatingRoute = false;
+  LatLng? _lastCalculatedDriverPos;
 
   @override
   void initState() {
@@ -100,11 +106,13 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
       try {
         final lastPos = await Geolocator.getLastKnownPosition();
         if (lastPos != null && mounted) {
+          final normPos = _normalizePosition(lastPos.latitude, lastPos.longitude);
           setState(() {
-            _driverLocation = _normalizePosition(lastPos.latitude, lastPos.longitude);
+            _driverLocation = normPos;
             _driverAccuracyMeters = lastPos.accuracy;
             _isGpsActive = true;
           });
+          _checkAndTriggerRouteUpdate(normPos);
         }
       } catch (_) {}
 
@@ -117,11 +125,13 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
       ).listen(
         (pos) {
           if (!mounted) return;
+          final normPos = _normalizePosition(pos.latitude, pos.longitude);
           setState(() {
-            _driverLocation = _normalizePosition(pos.latitude, pos.longitude);
+            _driverLocation = normPos;
             _driverAccuracyMeters = pos.accuracy;
             _isGpsActive = true;
           });
+          _checkAndTriggerRouteUpdate(normPos);
         },
         onError: (_) {
           if (mounted) setState(() => _isGpsActive = false);
@@ -136,15 +146,59 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
         ),
       ).then((pos) {
         if (mounted) {
+          final normPos = _normalizePosition(pos.latitude, pos.longitude);
           setState(() {
-            _driverLocation = _normalizePosition(pos.latitude, pos.longitude);
+            _driverLocation = normPos;
             _driverAccuracyMeters = pos.accuracy;
             _isGpsActive = true;
           });
+          _checkAndTriggerRouteUpdate(normPos);
         }
       }).catchError((_) {});
     } catch (_) {
       if (mounted) setState(() => _isGpsActive = false);
+    }
+  }
+
+  /// Calcul ou recalcul dynamique de l'itinéraire le plus court (Dijkstra)
+  Future<void> _updateRouteIfNeeded(LatLng clientLatLng, {bool force = false}) async {
+    if (_driverLocation == null) return;
+    if (_isCalculatingRoute) return;
+
+    const distanceCalc = Distance();
+    final shouldRecalculate = force ||
+        _lastCalculatedDriverPos == null ||
+        distanceCalc.as(LengthUnit.Meter, _driverLocation!, _lastCalculatedDriverPos!) > 35.0 ||
+        (_routingResult != null &&
+            RoutingService.hasDriverDeviated(
+              driverPosition: _driverLocation!,
+              currentRoutePoints: _routingResult!.primaryRoute.points,
+              thresholdMeters: 40.0,
+            ));
+
+    if (!shouldRecalculate) return;
+
+    _isCalculatingRoute = true;
+    final currentDriverPos = _driverLocation!;
+    final res = await RoutingService.calculateRoutes(
+      origin: currentDriverPos,
+      destination: clientLatLng,
+    );
+
+    if (mounted) {
+      setState(() {
+        _routingResult = res;
+        _lastCalculatedDriverPos = currentDriverPos;
+        _isCalculatingRoute = false;
+      });
+    }
+  }
+
+  void _checkAndTriggerRouteUpdate(LatLng? currentDriverPos) {
+    if (currentDriverPos == null) return;
+    final currentOrder = _overriddenOrder ?? widget.order;
+    if (currentOrder.latitude != null && currentOrder.longitude != null) {
+      _updateRouteIfNeeded(LatLng(currentOrder.latitude!, currentOrder.longitude!));
     }
   }
 
@@ -237,15 +291,14 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
   }
 
   Future<void> _openExternalGps(double lat, double lng) async {
-    final Uri googleMapsUri = Uri.parse('google.navigation:q=$lat,$lng&mode=d');
-    final Uri webFallbackUri = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
-    try {
-      if (await canLaunchUrl(googleMapsUri)) {
-        await launchUrl(googleMapsUri);
-      } else if (await canLaunchUrl(webFallbackUri)) {
-        await launchUrl(webFallbackUri, mode: LaunchMode.externalApplication);
-      }
-    } catch (_) {}
+    final currentOrder = _overriddenOrder ?? widget.order;
+    await RoutingService.openGoogleMapsNavigation(
+      destLat: lat,
+      destLng: lng,
+      originLat: _driverLocation?.latitude,
+      originLng: _driverLocation?.longitude,
+      destinationLabel: currentOrder.clientNom,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -322,6 +375,11 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
     if (success) {
       // 3. Activer / rafraîchir le tracking temps réel sur la carte
       _startPositionTracking();
+
+      final currentOrder = _overriddenOrder ?? widget.order;
+      if (currentOrder.latitude != null && currentOrder.longitude != null && _driverLocation != null) {
+        _updateRouteIfNeeded(LatLng(currentOrder.latitude!, currentOrder.longitude!), force: true);
+      }
 
       final precisionText = _driverAccuracyMeters != null
           ? " (Précision : ${_driverAccuracyMeters!.toStringAsFixed(0)} m)"
@@ -902,27 +960,76 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
           // 2. Boutons d'en-tête flottants (Retour, Titre, GPS Externe)
           _buildFloatingHeader(currentOrder, requiresGpsValidation),
 
-          // 2B. Bouton flottant de géolocalisation livreur (Recentrer / Synchroniser la position)
+          // 2B. Boutons flottants : Recentrer GPS & Naviguer avec Google Maps
           if (!requiresGpsValidation && currentOrder.latitude != null && currentOrder.longitude != null)
             Positioned(
               right: 14,
               top: 76,
               child: SafeArea(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2))],
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      _isGpsActive ? Icons.my_location : Icons.location_searching,
-                      color: _isGpsActive ? const Color(0xFF0A5FCB) : Colors.grey.shade600,
-                      size: 20,
+                child: Column(
+                  children: [
+                    // Bouton Recentrer
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2))],
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          _isGpsActive ? Icons.my_location : Icons.location_searching,
+                          color: _isGpsActive ? const Color(0xFF0A5FCB) : Colors.grey.shade600,
+                          size: 20,
+                        ),
+                        tooltip: "Recentrer sur ma position (Livreur)",
+                        onPressed: _centerMapOnDriver,
+                      ),
                     ),
-                    tooltip: "Recentrer sur ma position (Livreur)",
-                    onPressed: _centerMapOnDriver,
-                  ),
+                    const SizedBox(height: 8),
+                    // Bouton Navigation Google Maps
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 2))],
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            if (currentOrder.latitude != null && currentOrder.longitude != null) {
+                              RoutingService.openGoogleMapsNavigation(
+                                destLat: currentOrder.latitude!,
+                                destLng: currentOrder.longitude!,
+                                originLat: _driverLocation?.latitude,
+                                originLng: _driverLocation?.longitude,
+                                destinationLabel: currentOrder.clientNom,
+                              );
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(20),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.directions, color: Color(0xFF0A5FCB), size: 18),
+                                SizedBox(width: 4),
+                                Text(
+                                  "Maps",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 11,
+                                    color: Color(0xFF0F172A),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -949,24 +1056,46 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
   // ---------------------------------------------------------------------------
   Widget _buildInteractiveMap(DeliveryOrder currentOrder) {
     final clientLatLng = LatLng(currentOrder.latitude!, currentOrder.longitude!);
-    final depotLatLng = LatLng(AppConfig.fallbackLatitude, AppConfig.fallbackLongitude);
+    final bool hasDriverGps = _driverLocation != null;
 
-    // Si le GPS du smartphone du livreur est disponible, le départ du tracé est sa position réelle
-    final originLatLng = _driverLocation ?? depotLatLng;
-    final bool isUsingDriverGps = _driverLocation != null;
+    // Déclencher le calcul du chemin le plus court dès que le GPS chauffeur est acquis
+    if (hasDriverGps && _routingResult == null && !_isCalculatingRoute) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _updateRouteIfNeeded(clientLatLng);
+      });
+    }
 
     const distanceCalc = Distance();
-    final distanceKm = distanceCalc.as(LengthUnit.Kilometer, originLatLng, clientLatLng);
+    final double directDistanceKm = hasDriverGps
+        ? distanceCalc.as(LengthUnit.Kilometer, _driverLocation!, clientLatLng)
+        : 0.0;
 
-    final midPoint = LatLng(
-      (originLatLng.latitude + clientLatLng.latitude) / 2,
-      (originLatLng.longitude + clientLatLng.longitude) / 2,
-    );
+    final double effectiveDistanceKm = _routingResult != null
+        ? _routingResult!.primaryRoute.distanceKm
+        : directDistanceKm;
+
+    final int effectiveDurationMin = _routingResult != null
+        ? _routingResult!.primaryRoute.durationMinutes
+        : (directDistanceKm * 2.5).clamp(2, 60).round();
+
+    // Positionnement du badge d'estimation sur l'itinéraire routier
+    LatLng badgePoint = clientLatLng;
+    if (hasDriverGps) {
+      if (_routingResult != null && _routingResult!.primaryRoute.points.isNotEmpty) {
+        final pts = _routingResult!.primaryRoute.points;
+        badgePoint = pts[pts.length ~/ 2];
+      } else {
+        badgePoint = LatLng(
+          (_driverLocation!.latitude + clientLatLng.latitude) / 2,
+          (_driverLocation!.longitude + clientLatLng.longitude) / 2,
+        );
+      }
+    }
 
     return FlutterMap(
       mapController: _mapController,
       options: MapOptions(
-        initialCenter: isUsingDriverGps ? originLatLng : clientLatLng,
+        initialCenter: hasDriverGps ? _driverLocation! : clientLatLng,
         initialZoom: 14.5,
       ),
       children: [
@@ -974,21 +1103,41 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.transportlogistic.transportlogistic',
         ),
+
+        // Tracé des polylines routières
         PolylineLayer(
           polylines: [
-            Polyline(
-              points: [originLatLng, midPoint, clientLatLng],
-              strokeWidth: 4.5,
-              color: isUsingDriverGps ? const Color(0xFF0A5FCB) : const Color(0xFFEA580C),
-            ),
+            // 1. Chemins alternatifs secondaires (en gris-bleu discret)
+            if (_routingResult != null)
+              for (final alt in _routingResult!.alternativeRoutes)
+                Polyline(
+                  points: alt.points,
+                  strokeWidth: 3.5,
+                  color: const Color(0xFF64748B).withValues(alpha: 0.6),
+                ),
+
+            // 2. Chemin principal optimal (Dijkstra - le plus court en bleu éclatant)
+            if (_routingResult != null)
+              Polyline(
+                points: _routingResult!.primaryRoute.points,
+                strokeWidth: 5.5,
+                color: const Color(0xFF0A5FCB),
+              )
+            else if (hasDriverGps)
+              Polyline(
+                points: [_driverLocation!, clientLatLng],
+                strokeWidth: 4.0,
+                color: const Color(0xFF0A5FCB).withValues(alpha: 0.35),
+              ),
           ],
         ),
+
         MarkerLayer(
           markers: [
-            // 1. Origine : Marqueur Livreur en temps réel (Bleu Royal) OU Dépôt Central JLG (Bleu Marine)
-            if (isUsingDriverGps)
+            // 1. Origine : Marqueur Livreur en temps réel (Bleu Royal) - AUCUN faux dépôt
+            if (hasDriverGps)
               Marker(
-                point: originLatLng,
+                point: _driverLocation!,
                 width: 52,
                 height: 52,
                 child: Stack(
@@ -1003,7 +1152,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                         shape: BoxShape.circle,
                       ),
                     ),
-                    // Pointeur GPS du livreur
+                    // Pointeur GPS dynamique du livreur
                     Container(
                       width: 36,
                       height: 36,
@@ -1017,59 +1166,59 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                     ),
                   ],
                 ),
-              )
-            else
-              Marker(
-                point: depotLatLng,
-                width: 44,
-                height: 44,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF071933),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
-                  ),
-                  child: const Icon(Icons.warehouse_rounded, color: Colors.white, size: 22),
-                ),
               ),
 
-            // 2. Trajet & Temps Estimé au milieu du tracé
-            Marker(
-              point: midPoint,
-              width: 130,
-              height: 44,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: isUsingDriverGps ? const Color(0xFF0A5FCB) : const Color(0xFFEA580C),
-                        shape: BoxShape.circle,
+            // 2. Trajet & Temps Estimé au milieu du tracé routier
+            if (hasDriverGps)
+              Marker(
+                point: badgePoint,
+                width: 155,
+                height: 44,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF0A5FCB),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.local_shipping, color: Colors.white, size: 14),
                       ),
-                      child: const Icon(Icons.local_shipping, color: Colors.white, size: 14),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      "${(distanceKm * 2.5).clamp(2, 45).round()} min (${distanceKm.toStringAsFixed(1)} km)",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
-                        color: Colors.black87,
+                      const SizedBox(width: 6),
+                      Text(
+                        "$effectiveDurationMin min (${effectiveDistanceKm.toStringAsFixed(1)} km)",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                          color: Colors.black87,
+                        ),
                       ),
-                    ),
-                  ],
+                      if (_routingResult != null && _routingResult!.alternativeRoutes.isNotEmpty) ...[
+                        const SizedBox(width: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFCE7),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            "Court",
+                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 8, color: Color(0xFF166534)),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-            ),
 
             // 3. Destination : Marqueur Vert Client
             Marker(
@@ -1088,6 +1237,38 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
             ),
           ],
         ),
+
+        // Message discret si en attente du GPS livreur
+        if (!hasDriverGps)
+          Positioned(
+            top: 76,
+            left: 20,
+            right: 70,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A).withValues(alpha: 0.88),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)],
+              ),
+              child: const Row(
+                children: [
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "Localisation chauffeur en cours...",
+                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
