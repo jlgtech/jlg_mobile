@@ -7,6 +7,7 @@ class DeliveryItem {
   final double totalLigne;
   final bool exigeRetourEmballage;
   final String? nomEmballageRecupere;
+  final int? quantiteRecuperee;
 
   DeliveryItem({
     required this.articleId,
@@ -17,12 +18,16 @@ class DeliveryItem {
     required this.totalLigne,
     this.exigeRetourEmballage = false,
     this.nomEmballageRecupere,
+    this.quantiteRecuperee,
   });
 
   factory DeliveryItem.fromJson(Map<String, dynamic> json) {
     final pu = double.tryParse((json['prix_unitaire_facture'] ?? json['prix_unitaire'] ?? '0').toString()) ?? 0.0;
     final qte = (json['quantite_commandee'] is num) ? (json['quantite_commandee'] as num).toInt() : 1;
     final total = double.tryParse((json['total_ligne'] ?? (pu * qte)).toString()) ?? (pu * qte);
+    final qteRecup = (json['quantite_recuperee'] is num)
+        ? (json['quantite_recuperee'] as num).toInt()
+        : int.tryParse(json['quantite_recuperee']?.toString() ?? '');
     
     // Détection dynamique ou de compatibilité pour les articles 5 Gallons
     final desig = json['article_designation'] ?? json['designation'] ?? json['article']?['designation'] ?? 'Produit';
@@ -38,6 +43,7 @@ class DeliveryItem {
       totalLigne: total,
       exigeRetourEmballage: isExplicitConsigne || isAutoConsigne,
       nomEmballageRecupere: json['nom_emballage_recupere'] ?? json['article']?['nom_emballage_recupere'] ?? (isAutoConsigne ? 'Bonbonne vide 5G' : null),
+      quantiteRecuperee: qteRecup,
     );
   }
 
@@ -51,6 +57,7 @@ class DeliveryItem {
       'total_ligne': totalLigne,
       'exige_retour_emballage': exigeRetourEmballage,
       'nom_emballage_recupere': nomEmballageRecupere,
+      'quantite_recuperee': quantiteRecuperee,
     };
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
@@ -39,6 +40,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
   bool _isProcessing = false;
   DeliveryOrder? _overriddenOrder;
   final Map<String, int> _consignesRecuperees = {};
+  final Map<String, TextEditingController> _consignesControllers = {};
   final TextEditingController _consignesNotesController = TextEditingController();
 
   // Suivi en temps réel de la position GPS du smartphone du livreur
@@ -62,9 +64,18 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
   void _initConsignes() {
     for (final it in widget.order.items) {
       if (it.exigeRetourEmballage) {
-        _consignesRecuperees[it.articleId] = it.quantiteCommandee;
+        final initial = it.quantiteRecuperee ?? it.quantiteCommandee;
+        _consignesRecuperees[it.articleId] = initial;
+        _consignesControllers[it.articleId] = TextEditingController(text: initial.toString());
       }
     }
+  }
+
+  TextEditingController _getConsigneController(String articleId, int initialCount) {
+    if (!_consignesControllers.containsKey(articleId)) {
+      _consignesControllers[articleId] = TextEditingController(text: initialCount.toString());
+    }
+    return _consignesControllers[articleId]!;
   }
 
   Future<void> _initDriverLocationTracking() async {
@@ -245,6 +256,9 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
   void dispose() {
     _positionSubscription?.cancel();
     _consignesNotesController.dispose();
+    for (final c in _consignesControllers.values) {
+      c.dispose();
+    }
     _sheetController.dispose();
     super.dispose();
   }
@@ -1458,7 +1472,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
 
                   const SizedBox(height: 18),
 
-                  _buildOrderSummaryCard(currentOrder),
+                  _buildOrderSummaryCard(currentOrder, isDone: workflow.isDone),
                 ],
               ),
             ),
@@ -1850,28 +1864,30 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
                       const SizedBox(height: 16),
 
                       // Récapitulatif Articles & Consignes
-                      _buildOrderSummaryCard(currentOrder),
+                      _buildOrderSummaryCard(currentOrder, isDone: workflow.isDone),
 
-                      const SizedBox(height: 12),
+                      if (!workflow.isDone) ...[
+                        const SizedBox(height: 12),
 
-                      // Bouton incident / panne
-                      TextButton.icon(
-                        onPressed: () => _openBreakdownDialog(currentOrder),
-                        icon: const Icon(Icons.car_crash_outlined, size: 16, color: Colors.red),
-                        label: const Text(
-                          "Signaler une panne ou demander un relais",
-                          style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w600),
+                        // Bouton incident / panne
+                        TextButton.icon(
+                          onPressed: () => _openBreakdownDialog(currentOrder),
+                          icon: const Icon(Icons.car_crash_outlined, size: 16, color: Colors.red),
+                          label: const Text(
+                            "Signaler une panne ou demander un relais",
+                            style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
                         ),
-                      ),
-                      // Bouton litige / anomalie
-                      TextButton.icon(
-                        onPressed: () => _openDisputeModal(currentOrder),
-                        icon: const Icon(Icons.report_problem_outlined, size: 16, color: Colors.orange),
-                        label: const Text(
-                          "Signaler un litige / anomalie marchandise",
-                          style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w600),
+                        // Bouton litige / anomalie
+                        TextButton.icon(
+                          onPressed: () => _openDisputeModal(currentOrder),
+                          icon: const Icon(Icons.report_problem_outlined, size: 16, color: Colors.orange),
+                          label: const Text(
+                            "Signaler un litige / anomalie marchandise",
+                            style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
                         ),
-                      ),
+                      ],
                       const SizedBox(height: 12),
                     ],
                   ),
@@ -2324,7 +2340,7 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
   // ---------------------------------------------------------------------------
   // RÉCAPITULATIF MARCHANDISES & CONSIGNES
   // ---------------------------------------------------------------------------
-  Widget _buildOrderSummaryCard(DeliveryOrder currentOrder) {
+  Widget _buildOrderSummaryCard(DeliveryOrder currentOrder, {bool isDone = false}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -2377,37 +2393,150 @@ class _DeliveryDetailViewState extends State<DeliveryDetailView> {
               )),
           if (currentOrder.items.any((it) => it.exigeRetourEmballage)) ...[
             const Divider(height: 22),
-            const Text(
-              "Emballages Vides à Récupérer :",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F172A)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Emballages Vides à Récupérer :",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF0F172A)),
+                ),
+                if (!isDone)
+                  Text(
+                    "Saisie manuelle ou +/-",
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic),
+                  ),
+              ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             ...currentOrder.items.where((it) => it.exigeRetourEmballage).map((it) {
               final count = _consignesRecuperees[it.articleId] ?? it.quantiteCommandee;
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    it.nomEmballageRecupere ?? "Bonbonne vide 5G",
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  Row(
+
+              if (isDone) {
+                // Mode Consultation / Livraison Clôturée : Verrouillé en lecture seule
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, size: 20),
-                        onPressed: count > 0
-                            ? () => setState(() => _consignesRecuperees[it.articleId] = count - 1)
-                            : null,
+                      Expanded(
+                        child: Text(
+                          it.nomEmballageRecupere ?? "Bonbonne vide 5G",
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      Text("$count", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle_outline, size: 20),
-                        onPressed: () =>
-                            setState(() => _consignesRecuperees[it.articleId] = count + 1),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.check_circle_outline, size: 14, color: Color(0xFF059669)),
+                            const SizedBox(width: 5),
+                            Text(
+                              "$count récupéré${count > 1 ? 's' : ''}",
+                              style: const TextStyle(
+                                color: Color(0xFF059669),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ],
+                );
+              }
+
+              // Mode Saisie / En cours : Boutons +/- et champ de frappe directe au clavier
+              final controller = _getConsigneController(it.articleId, count);
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        it.nomEmballageRecupere ?? "Bonbonne vide 5G",
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Bouton Décrémenter (-1)
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline, size: 22, color: Color(0xFF475569)),
+                          splashRadius: 20,
+                          onPressed: count > 0
+                              ? () {
+                                  final newCount = count - 1;
+                                  controller.text = newCount.toString();
+                                  setState(() => _consignesRecuperees[it.articleId] = newCount);
+                                }
+                              : null,
+                        ),
+                        // Champ de saisie directe au clavier pour les gros volumes (ex: 300, 600...)
+                        SizedBox(
+                          width: 65,
+                          height: 38,
+                          child: TextFormField(
+                            controller: controller,
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F172A)),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                              LengthLimitingTextInputFormatter(6),
+                            ],
+                            decoration: InputDecoration(
+                              contentPadding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                              filled: true,
+                              fillColor: Colors.grey.shade50,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: Color(0xFF049DF7), width: 1.5),
+                              ),
+                            ),
+                            onChanged: (val) {
+                              final parsed = int.tryParse(val.trim());
+                              if (parsed != null && parsed >= 0) {
+                                _consignesRecuperees[it.articleId] = parsed;
+                              } else if (val.trim().isEmpty) {
+                                _consignesRecuperees[it.articleId] = 0;
+                              }
+                            },
+                          ),
+                        ),
+                        // Bouton Incrémenter (+1)
+                        IconButton(
+                          icon: const Icon(Icons.add_circle_outline, size: 22, color: Color(0xFF049DF7)),
+                          splashRadius: 20,
+                          onPressed: () {
+                            final newCount = count + 1;
+                            controller.text = newCount.toString();
+                            setState(() => _consignesRecuperees[it.articleId] = newCount);
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               );
             }),
           ],

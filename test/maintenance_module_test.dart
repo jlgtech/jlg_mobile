@@ -110,16 +110,6 @@ void main() {
 
       // Forcer un état d'avertissement
       provider.handle503(null); // Active
-      // Simuler l'arrivée d'une alerte préventive non active
-      final warningInfo = MaintenanceInfo(
-        isActive: false,
-        isScheduled: true,
-        isWarning: true,
-        debut: DateTime.now().add(const Duration(minutes: 20)),
-        fin: DateTime.now().add(const Duration(hours: 2)),
-        minutesRemaining: 20,
-        serverTime: DateTime.now(),
-      );
 
       final dummyProvider = MaintenanceProvider();
       expect(dummyProvider.bannerDismissed, isFalse);
@@ -148,8 +138,6 @@ void main() {
     });
 
     testWidgets('MaintenanceWarningBanner renders warning and allows dismissal', (tester) async {
-      final provider = MaintenanceProvider();
-
       // Injection d'un statut en alerte
       final warningInfo = MaintenanceInfo(
         isActive: false,
@@ -222,7 +210,7 @@ void main() {
 }
 
 class _TestMaintenanceProvider extends MaintenanceProvider {
-  MaintenanceInfo? _testInfo;
+  final MaintenanceInfo? _testInfo;
   bool _dismissed = false;
 
   _TestMaintenanceProvider(this._testInfo);
