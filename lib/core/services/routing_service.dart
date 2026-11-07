@@ -176,19 +176,35 @@ class RoutingService {
 
     final universalUri = Uri.parse(universalUrl);
 
+    // 1. Essai avec le protocole natif Google Maps (Android)
     try {
-      if (await canLaunchUrl(nativeNavUri)) {
+      final canNative = await canLaunchUrl(nativeNavUri);
+      if (canNative) {
         return await launchUrl(nativeNavUri, mode: LaunchMode.externalApplication);
       }
-      if (await canLaunchUrl(universalUri)) {
+    } catch (_) {
+      // Ignorer l'erreur spécifique pigeon/channel et tenter le protocole universel
+    }
+
+    // 2. Essai avec l'URI universelle Google Maps (app ou navigateur)
+    try {
+      final canUniversal = await canLaunchUrl(universalUri);
+      if (canUniversal) {
         return await launchUrl(universalUri, mode: LaunchMode.externalApplication);
       }
+    } catch (_) {
+      // Si canLaunchUrl échoue en raison de restrictions Android, tenter le lancement direct
+    }
+
+    // 3. Fallback direct externe sans canLaunchUrl
+    try {
+      return await launchUrl(universalUri, mode: LaunchMode.externalApplication);
     } catch (e) {
       if (kDebugMode) {
         print("[RoutingService] Erreur lancement Google Maps: $e");
       }
+      return false;
     }
-    return false;
   }
 }
 

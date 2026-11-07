@@ -247,7 +247,7 @@ class LocationService {
         effectiveLat = 18.5420;
         effectiveLng = -72.3150;
         if (kDebugMode) {
-          print("[LocationService] Simulateur détecté aux USA ($pos.latitude, $pos.longitude). Repli automatique en Haïti ($effectiveLat, $effectiveLng)");
+          print("[LocationService] Simulateur détecté aux USA (${pos.latitude}, ${pos.longitude}). Repli automatique en Haïti ($effectiveLat, $effectiveLng)");
         }
       }
 
